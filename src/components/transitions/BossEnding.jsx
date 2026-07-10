@@ -35,7 +35,7 @@ const CREDIT_LINES = [
 const SCROLL_DURATION_S = 32;
 const FADE_MS = 2500;
 
-export default function BossEnding() {
+export default function BossEnding({ onDone }) {
   const [stage,setStage] = useState("wizard");
     const [creditsDone, setCreditsDone] = useState(false);
   const audioRef = useRef(null);
@@ -73,7 +73,7 @@ export default function BossEnding() {
   const handleScrollEnd = () => {
     if (audioRef.current) fadeOutAudio(audioRef.current, FADE_MS);
     setCreditsDone(true);
-    setTimeout(() => setStage("black"), FADE_MS);
+    setTimeout(() => { setStage("black"); onDone && onDone(); }, FADE_MS);
   };
 
   return (

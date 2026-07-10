@@ -101,17 +101,18 @@ const FIRE_TOP_OFFSET = -8;
 // frame newly reveals.
 const FIRE_ICON_STRIP_LEFT_PCT = 151 / 280;
 const FIRE_ICON_SLOT_WIDTH_PCT = ((276 - 151) / 4) / 280;
-const FIRE_ICON_TOP_PCT = 29 / 190;
-const FIRE_ICON_HEIGHT_PCT = (61 - 29) / 190;
+const FIRE_ICON_TOP_PCT = 33 / 190;
+const FIRE_ICON_HEIGHT_PCT = (60 - 33) / 190;
 const KILL_RAW_W = 1749, KILL_RAW_H = 899;
 const KILL_H = 420;
 const KILL_W = Math.round(KILL_H * (KILL_RAW_W / KILL_RAW_H));
 const KILL_LEFT = (FIGHT_W - KILL_W) / 2;
-// bottom-aligned to FLOOR_Y exactly (no offset) sat 8px higher than the fire
-// pose that plays right before it in the same cutscene (fire's bottom edge
-// is FLOOR_Y + FIRE_TOP_OFFSET, i.e. 8px lower) — reuse that same offset so
-// the two beats don't visibly jump when the pose swaps over.
-const KILL_TOP = FLOOR_Y - KILL_H + FIRE_TOP_OFFSET;
+// kill1.png has a lot of empty space below both characters' feet (feet bottom
+// out around y=830 of the 899px-tall source), so bottom-aligning the image's
+// own edge to FLOOR_Y left everyone floating well above the ground. Align by
+// the actual foot position instead.
+const KILL_FOOT_Y_FRAC = 830 / KILL_RAW_H;
+const KILL_TOP = FLOOR_Y - KILL_FOOT_Y_FRAC * KILL_H;
 const KILL_BEAM_SPLIT_PCT = (895 / KILL_RAW_W) * 100;
 const PLAYER_CUTSCENE_X = 125;
 const ENEMY_CUTSCENE_X = FIGHT_W - CHAR_W - 30;
@@ -182,7 +183,7 @@ const TAUNT_LINE = "Haha, you are weak.";
 
 const MONOLOGUE = "It…it…it.. Can't be! How did you get the RAM stick? And working!!!! By what means did you defeat Kyran's race time? How did you open the Thousand-Year apple? What sorcery did you proclaim to bewitch the King Frog to hand over his only Lily Flower? And the…the…the…BUTTERFLIES!!!!";
 
-export default function BossFight({ onWin, onLose, debugInstantWinSignal }) {
+export default function BossFight({ onWin, onLose }) {
   const { coins } = useCoins();
   const keys = useRef({});
 
@@ -563,22 +564,11 @@ export default function BossFight({ onWin, onLose, debugInstantWinSignal }) {
   }, []);
 
   useEffect(() => {
-    // once the free-fight phase ends, whatever track is already playing
-    // (normal/critical) just keeps looping through the whole win cutscene —
-    // it only stops when the component itself unmounts (see the mount
-    // effect's cleanup above), not partway through the cutscene
+    if (phase === "wizard") { stopBgMusic(300); return; }
     if (phase !== "fight") return;
     const wantKind = playerHP < playerMaxHP * LOW_HP_FLASH_FRACTION ? "critical" : "normal";
     if (bgMusicKind.current !== wantKind) startBgMusic(wantKind);
   }, [phase, playerHP]);
-
-  const prevInstantWinSignal = useRef(debugInstantWinSignal);
-  useEffect(() => {
-    if (debugInstantWinSignal !== prevInstantWinSignal.current) {
-      prevInstantWinSignal.current = debugInstantWinSignal;
-      setPhase("wizard");
-    }
-  }, [debugInstantWinSignal]);
 
   useEffect(() => {
     if (phase === "fight" && !dialogue && enemyHP <= 1) {

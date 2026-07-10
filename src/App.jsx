@@ -48,7 +48,6 @@ export default function App() {
   const [phase, setPhase] = useState(() => hasProgress ? "resume" : "spreadsheet");
   const [zoomTarget, setZoomTarget] = useState("mainGame");
   const typedRef = useRef("");
-  const [bossInstantWinSignal, setBossInstantWinSignal] = useState(0);
 
   const finishGame = (gameKey) => {
     markGameComplete(gameKey);
@@ -143,7 +142,6 @@ export default function App() {
         <BossFight
           onWin={() => setPhase("mainGame")}
           onLose={() => setPhase("mainGame")}
-          debugInstantWinSignal={bossInstantWinSignal}
         />
       );
     }
