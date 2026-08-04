@@ -102,7 +102,6 @@ export default function FroggerIntro({ onNext }) {
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
       `}</style>
 

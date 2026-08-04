@@ -22,29 +22,29 @@ export default function FroggerInstructions({ onNext }) {
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         .text { font-family: 'PokemonClassic', monospace; color: #fff; font-size: 16px; letter-spacing: 0.5px; line-height: 1.7; }
       `}</style>
 
       <div style={{
-        flex: 1, background: "#000", padding: "40px",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "30px", height: "100%"
+        flex: 1, background: "#000", padding: "10px 40px",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px",
+        overflow: "hidden", minHeight: 0, height: "100%"
       }}>
         {fadeBlack > 0 && <div style={{ position: "fixed", inset: 0, background: "#000", opacity: fadeBlack, zIndex: 99 }} />}
 
-        <h1 className="text" style={{ fontSize: "20px", color: "#2ea84a", borderBottom: "2px solid #2ea84a", paddingBottom: "10px" }}>INSTRUCTIONS</h1>
+        <h1 className="text" style={{ fontSize: "18px", color: "#2ea84a", borderBottom: "2px solid #2ea84a", paddingBottom: 3 }}>INSTRUCTIONS</h1>
 
         <div style={{ textAlign: "center", maxWidth: "460px" }}>
-          <p className="text">Use the arrow keys to hop forward, backward, left, and right through traffic and across the river's logs. Only the big lily pad counts as home — miss it and you'll fall in the water!</p>
-          <img src={arrowKeysImg} alt="Arrows" style={{ width: 120, marginTop: 20, imageRendering: "pixelated" }} />
+          <p className="text" style={{ fontSize: "14px" }}>Use the arrow keys to hop forward, backward, left, and right through traffic and across the river's logs. Only the big lily pad counts as home — miss it and you'll fall in the water!</p>
+          <img src={arrowKeysImg} alt="Arrows" style={{ width: 80, marginTop: 10, imageRendering: "pixelated" }} />
         </div>
 
         <button
           onClick={handleNext}
           style={{
-            marginTop: "30px", background: "#000", border: "3px solid #9933ff",
-            color: "#9933ff", padding: "10px 30px", fontFamily: "'PokemonClassic', monospace",
-            cursor: "pointer", fontSize: "12px"
+            marginTop: "2px", background: "#000", border: "3px solid #9933ff",
+            color: "#9933ff", padding: "8px 26px", fontFamily: "'PokemonClassic', monospace",
+            cursor: "pointer", fontSize: "12px", flexShrink: 0
           }}
         >
           START GAME ▼

@@ -79,7 +79,6 @@ export default function BossEnding({ onDone }) {
   return (
     <AppShell showCoins={false}>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         @keyframes creditsScroll {
           from { transform: translateY(0); }
           to { transform: translateY(-2400px); }

@@ -284,7 +284,6 @@ export default function MainGameScreen({ onNext })
 
   return (
     <AppShell>
-      <style>{`@font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }`}</style>
       {nagMessage && <ITPopup message={nagMessage} />}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <GameCanvas dimmed={false} progress={progress} />

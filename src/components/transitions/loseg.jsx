@@ -5,11 +5,6 @@ const gameOverAudio = new Audio(gameoverSfx);
 gameOverAudio.preload = 'auto';
 
 const injectedCSS = `
-  @font-face {
-    font-family: 'PokemonClassic';
-    src: url('/fonts/PokemonClassic.ttf') format('truetype');
-  }
-
   .loseg-container {
     position: absolute;
     top: 0;
@@ -33,15 +28,15 @@ const injectedCSS = `
   .game-over-text {
     font-family: 'PokemonClassic', sans-serif;
     color: red;
-    font-size: 4rem;
+    font-size: 64px;
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 32px;
     text-shadow: 2px 2px 0px #000;
   }
 
   .play-again-btn {
     font-family: 'PokemonClassic', sans-serif;
-    font-size:1.5rem;
+    font-size: 24px;
     padding: 15px 30px;
     background-color: transparent;
     color: #2ea84a;

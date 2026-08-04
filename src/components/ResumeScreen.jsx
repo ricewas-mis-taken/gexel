@@ -26,7 +26,6 @@ export default function ResumeScreen({ onContinue, onStartOver }) {
 
   return (
     <AppShell showCoins={false}>
-      <style>{`@font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }`}</style>
       <div style={{
         flex: 1, position: "relative", background: "#050510",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 26,

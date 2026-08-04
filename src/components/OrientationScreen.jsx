@@ -157,7 +157,6 @@ export default function OrientationScreen({ onNext })
     <>
       <AppShell showCoins={false}>
         <style>{`
-          @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
           @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
           @keyframes zoomIntoScreen {
             0% { transform: scale(1); opacity: 1; }

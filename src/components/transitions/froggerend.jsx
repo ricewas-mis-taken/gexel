@@ -43,7 +43,6 @@ export default function FroggerEnd({ onNext }) {
     <>
       <AppShell showCoins={false}>
         <style>{`
-          @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
           @keyframes froggerAuraPulse {
             0%, 100% { opacity: 0.65; transform: scale(0.95); }
             50%      { opacity: 1;    transform: scale(1.08); }

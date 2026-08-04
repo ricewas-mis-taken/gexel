@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
 import BossEnding from "./transitions/BossEnding";
+import Loseg from "./transitions/loseg";
 import punchSfx from "../assets/sf2/punch.mp3";
 import kickSfx from "../assets/sf2/kick.mp3";
 import blockSfx from "../assets/sf2/block.wav";
@@ -93,16 +94,6 @@ const CHAR_W = 168, CHAR_H = 308;
 const FIRE_W = Math.round(280 * 1.4), FIRE_H = Math.round(190 * 1.4);
 const FIRE_LEFT_OFFSET = -52;
 const FIRE_TOP_OFFSET = -8;
-// the icon strip holds 4 equal-width slots, and each fire frame only lights
-// up ONE new slot (fire1: none colored, fire2: slot0 colored, fire3:
-// slot0-1, ... fire5: all 4) — the still-black slots don't need wiping
-// (they're already black in the art) and already-revealed slots shouldn't
-// be re-covered either, so the wipe is scoped to just the single slot each
-// frame newly reveals.
-const FIRE_ICON_STRIP_LEFT_PCT = 151 / 280;
-const FIRE_ICON_SLOT_WIDTH_PCT = ((276 - 151) / 4) / 280;
-const FIRE_ICON_TOP_PCT = 33 / 190;
-const FIRE_ICON_HEIGHT_PCT = (60 - 33) / 190;
 const KILL_RAW_W = 1749, KILL_RAW_H = 899;
 const KILL_H = 420;
 const KILL_W = Math.round(KILL_H * (KILL_RAW_W / KILL_RAW_H));
@@ -206,9 +197,6 @@ export default function BossFight({ onWin, onLose }) {
   const frozenTriggered = useRef(false);
   const deathFrame = useRef(0);
 
-  const [fireWipeRevealed, setFireWipeRevealed] = useState(false);
-  const [fireFrameMs, setFireFrameMs] = useState(320);
-
   const playerActionRef = useRef(playerAction);
   useEffect(() => { playerActionRef.current = playerAction; }, [playerAction]);
   const playerBlockingRef = useRef(playerBlocking);
@@ -217,6 +205,8 @@ export default function BossFight({ onWin, onLose }) {
   useEffect(() => { enemyBlockingRef.current = enemyBlocking; }, [enemyBlocking]);
   const enemyHPRef = useRef(enemyHP);
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
+  const ramHPRef = useRef(ramHP);
+  useEffect(() => { ramHPRef.current = ramHP; }, [ramHP]);
   const enemyWhiffs = useRef(0);
   const blockingThisSwing = useRef(false);
   const enemyLandedHits = useRef(0);
@@ -351,9 +341,11 @@ export default function BossFight({ onWin, onLose }) {
 
       if (keys.current["arrowright"] && !playerAction.lock) {
         registerPlayerSwing("punch");
+        playSnd(punchSfx);
         setPlayerAction({ type: "punch", frame: 0, lock: true });
       } else if (keys.current["arrowup"] && !playerAction.lock) {
         registerPlayerSwing("kick");
+        playSnd(kickSfx);
         setPlayerAction({ type: "kick", frame: 0, lock: true });
       }
     }, 30);
@@ -372,7 +364,6 @@ export default function BossFight({ onWin, onLose }) {
           if (enemyBlockingRef.current) {
             playSnd(blockSfx);
           } else {
-            playSnd(playerAction.type === "punch" ? punchSfx : kickSfx);
             enemyLandedHits.current += 1;
             if (enemyLandedHits.current >= ENEMY_LEARN_BLOCK_HITS) {
               enemyLearnedBlock.current = true;
@@ -400,11 +391,11 @@ export default function BossFight({ onWin, onLose }) {
           const dmg = (enemyAction.type === "punch" ? PUNCH_DMG : KICK_DMG) * enemyDmgMult.current;
           if (playerBlockingRef.current) {
             playSnd(blockSfx);
-            setRamHP(r => {
-              if (r > 0) return Math.max(0, r - BLOCK_CHIP_DMG);
+            if (ramHPRef.current > 0) {
+              setRamHP(r => Math.max(0, r - BLOCK_CHIP_DMG));
+            } else {
               setPlayerHP(hp => Math.max(0, hp - BLOCK_CHIP_DMG));
-              return 0;
-            });
+            }
             playerBlockStreak.current += 1;
             if (playerBlockStreak.current > BLOCK_STREAK_LIMIT) {
               playerBlockStreak.current = 0;
@@ -419,14 +410,13 @@ export default function BossFight({ onWin, onLose }) {
               enemyStunTimer.current = setTimeout(() => setEnemyStunned(false), ENEMY_STUN_MS);
             }
           } else {
-            playSnd(enemyAction.type === "punch" ? punchSfx : kickSfx);
             resetBlockStreak();
             const floor = bossHealedOnce.current ? 1 : 0;
-            setRamHP(r => {
-              if (r > 0) return Math.max(0, r - dmg);
+            if (ramHPRef.current > 0) {
+              setRamHP(r => Math.max(0, r - dmg));
+            } else {
               setPlayerHP(hp => Math.max(floor, hp - dmg));
-              return 0;
-            });
+            }
             if (!comboActive.current) {
               comboActive.current = true;
               comboHits.current = 1;
@@ -437,7 +427,9 @@ export default function BossFight({ onWin, onLose }) {
             if (comboHits.current < MAX_COMBO_HITS) {
               comboTimer.current = setTimeout(() => {
                 if (!comboActive.current || enemyStunnedRef.current) return;
-                setEnemyAction({ type: Math.random() < 0.5 ? "kick" : "punch", frame: 0, lock: true });
+                const nextType = Math.random() < 0.5 ? "kick" : "punch";
+                playSnd(nextType === "kick" ? kickSfx : punchSfx);
+                setEnemyAction({ type: nextType, frame: 0, lock: true });
               }, COMBO_GAP_MS);
             } else {
               breakCombo();
@@ -482,7 +474,9 @@ export default function BossFight({ onWin, onLose }) {
         return;
       }
 
-      setEnemyAction({ type: Math.random() < 0.4 ? "kick" : "punch", frame: 0, lock: true });
+      const attackType = Math.random() < 0.4 ? "kick" : "punch";
+      playSnd(attackType === "kick" ? kickSfx : punchSfx);
+      setEnemyAction({ type: attackType, frame: 0, lock: true });
     }, AI_TICK_MS);
     return () => clearInterval(ai);
   }, [phase, dialogue]);
@@ -564,7 +558,7 @@ export default function BossFight({ onWin, onLose }) {
   }, []);
 
   useEffect(() => {
-    if (phase === "wizard") { stopBgMusic(300); return; }
+    if (phase === "wizard" || phase === "lost") { stopBgMusic(300); return; }
     if (phase !== "fight") return;
     const wantKind = playerHP < playerMaxHP * LOW_HP_FLASH_FRACTION ? "critical" : "normal";
     if (bgMusicKind.current !== wantKind) startBgMusic(wantKind);
@@ -588,7 +582,7 @@ export default function BossFight({ onWin, onLose }) {
 
   useEffect(() => {
     if (phase === "fight" && playerHP <= 0 && ramHP <= 0 && !bossHealedOnce.current) {
-      onLose && onLose();
+      setPhase("lost");
     }
   }, [playerHP, ramHP, phase]);
 
@@ -667,13 +661,10 @@ export default function BossFight({ onWin, onLose }) {
       if (started || cancelled) return;
       started = true;
       const perFrameMs = Math.max(60, totalMs / frames.length);
-      setFireFrameMs(perFrameMs);
       let i = 0;
       const showFrame = () => {
         if (cancelled) return;
         setPlayerAction({ type: "fire", frame: i, lock: true });
-        setFireWipeRevealed(false);
-        requestAnimationFrame(() => { if (!cancelled) setFireWipeRevealed(true); });
         frameTimer = setTimeout(() => {
           i++;
           if (i < frames.length) showFrame();
@@ -796,7 +787,6 @@ export default function BossFight({ onWin, onLose }) {
         backgroundImage: `url(${bgImg})`, backgroundSize: "100% 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center",
       }}>
         <style>{`
-          @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
           @keyframes redflash { 0%,100%{box-shadow: inset 0 0 0 rgba(255,0,0,0);} 50%{box-shadow: inset 0 0 60px 20px rgba(255,0,0,0.6);} }
           @keyframes killwrithe {
             0%   { transform: scale(1,1) skewX(0deg) translateX(0); filter: brightness(1) saturate(1) hue-rotate(0deg); }
@@ -890,23 +880,6 @@ export default function BossFight({ onWin, onLose }) {
                       maskImage: FEET_FADE_MASK, WebkitMaskImage: FEET_FADE_MASK,
                     }}
                   />
-                  {isFirePose && phase === "fireCharge" && playerAction.frame >= 1 && (
-                    <div style={{
-                      position: "absolute",
-                      left: left + (FIRE_ICON_STRIP_LEFT_PCT + (playerAction.frame - 1) * FIRE_ICON_SLOT_WIDTH_PCT) * playerBoxW,
-                      top: top + FIRE_ICON_TOP_PCT * playerBoxH,
-                      width: FIRE_ICON_SLOT_WIDTH_PCT * playerBoxW,
-                      height: FIRE_ICON_HEIGHT_PCT * playerBoxH,
-                      overflow: "hidden", pointerEvents: "none",
-                    }}>
-                      <div style={{
-                        position: "absolute", top: 0, bottom: 0, right: 0,
-                        width: fireWipeRevealed ? "0%" : "100%",
-                        background: "#000",
-                        transition: fireWipeRevealed ? `width ${fireFrameMs}ms linear` : "none",
-                      }} />
-                    </div>
-                  )}
                 </>
               );
             })()}
@@ -981,6 +954,12 @@ export default function BossFight({ onWin, onLose }) {
           position: "absolute", inset: 0, background: "#000", zIndex: 999, pointerEvents: "none",
           opacity: screenFadeOut ? 1 : 0, transition: `opacity ${SCREEN_FADE_MS}ms ease`,
         }} />
+
+        {phase === "lost" && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 1000 }}>
+            <Loseg onPlayAgain={() => onLose && onLose()} />
+          </div>
+        )}
       </div>
     </AppShell>
   );
