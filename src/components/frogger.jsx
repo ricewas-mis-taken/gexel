@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import Loseg from "./transitions/Loseg";
-import CoinCounter from "./CoinCounter";
+import Loseg from "./transitions/loseg";
+import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
 import { fadeOutAudio } from "./audioFade";
 import { ensureAudioPlays } from "./audioUnlock";
@@ -31,26 +31,6 @@ export const ribbonBtn   = { fontSize: 13, padding: "3px 10px", cursor: "pointer
 export const cornerCell  = { background: "#2a2a2a", border: "1px solid #444", width: 40, minWidth: 40 };
 export const headerCell  = { background: "#2a2a2a", border: "1px solid #444", width: 80, minWidth: 80, textAlign: "center", fontWeight: "normal", padding: "2px 0", color: "#aaa" };
 export const rowHeader   = { background: "#2a2a2a", border: "1px solid #444", textAlign: "center", width: 40, minWidth: 40, fontSize: 12, color: "#aaa" };
-
-export function AppShell({ children, rightSlot }) {
-  return (
-    <div style={{ background: "#000", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 900, height: 600, position: "relative", border: "2px solid #2ea84a", borderRadius: 6, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 40px #2ea84a33" }}>
-        <div style={{ background: "#2ea84a", color: "white", padding: "6px 12px", fontSize: 14, display: "flex", alignItems: "center", gap: 16, flexShrink: 0, borderBottom: "2px solid #1a5c37" }}>
-          <span style={{ fontWeight: "bold" }}>Gexel</span>
-          {["File","Home","Insert","Page Layout","Formulas","Data","Review","View"].map(m => (
-            <span key={m} style={{ opacity: 0.85 }}>{m}</span>
-          ))}
-          {rightSlot && <span style={{ marginLeft: "auto" }}>{rightSlot}</span>}
-        </div>
-        <CoinCounter />
-        <div style={{ flex: 1, display: "flex", background: "#000a06", overflow: "hidden", position: "relative" }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const COLS = 13;
 const CELL=34;
@@ -578,17 +558,14 @@ function FroggerBoard({ onFinish }) {
   return (
     <div className="frogger-inner-wrap">
       <style>{`
-        @font-face {
-          font-family: 'PokemonClassic';
-          src: url('/fonts/PokemonClassic.ttf') format('truetype');
-        }
         .frogger-inner-wrap {
           --green: #00ff66;
           --green-dim: #0a5c2a;
           --green-deep: #062b10;
           font-family: 'Courier New', monospace;
-          width: 100%; height: 100%;
+          flex: 1; width: 100%;
           display: flex; align-items: center; justify-content: center;
+          background: #000a06;
           color: var(--green);
         }
         .game-frame {

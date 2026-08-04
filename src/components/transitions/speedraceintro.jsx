@@ -42,13 +42,12 @@ export default function SpeedraceIntro({ onNext }) {
     fontSize: 10, padding: "8px 20px", cursor: "pointer", letterSpacing: 1,
     boxShadow: "0 0 10px rgba(46, 168, 74, 0.2)",
   };
-  const boxColor = phase === "history" ? "#2ea84a" : "#ff4444";
-  const boxGlow = phase === "history" ? "#2ea84a66" : "#ff444466";
+  const boxColor = "#2ea84a";
+  const boxGlow = "#2ea84a66";
 
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
       `}</style>
 

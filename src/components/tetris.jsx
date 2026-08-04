@@ -739,7 +739,6 @@ export default function Tetris({ onFinish }) {
     <>
       <AppShell>
         <style>{`
-          @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
           @keyframes applePulse {
             0% { transform: scale(1); filter: drop-shadow(0 0 0px #2ea84a); }
             50% { transform: scale(1.15); filter: drop-shadow(0 0 20px #2ea84a); }

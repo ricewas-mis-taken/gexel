@@ -97,7 +97,6 @@ export default function PacmanIntro({ onNext }) {
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
       `}</style>
       <div style={{ flex: 1, background: "#000", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", paddingBottom: 120 }}>

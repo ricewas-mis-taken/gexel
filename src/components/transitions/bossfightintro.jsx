@@ -55,7 +55,6 @@ export default function BossfightIntro({ onNext }) {
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         @keyframes purpleFlicker {
           0%, 19%, 21%, 23%, 54%, 56%, 100% { opacity: 1; }
           20%, 55% { opacity: 0.45; }

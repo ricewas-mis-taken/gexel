@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 import blueGhostSfx from "../assets/pacman/blueghost.mp3";
 import ghostEatSfx from "../assets/pacman/ghosteat.mp3";
 import ghostReturnSfx from "../assets/pacman/ghostreturn.mp3";
 import pacDeathSfx from "../assets/pacman/pacdeath.mp3";
 import pacDotSfx from "../assets/pacman/pacdot.mp3";
 import { createLoopPlayer, unlockWebAudio } from "./webAudioLoop";
+import ramPacmanSrc from "../assets/ram-pacman.png";
 
 const TS = 16;
 const COLS = 28;
@@ -541,7 +542,7 @@ export default function Pacman({ onFinish }) {
   useEffect(() => {
     let active = true;
     eng.current = initEng();
-    const ram = new Image(); ram.src = "/src/assets/ram-pacman.png";
+    const ram = new Image(); ram.src = ramPacmanSrc;
     ramImgRef.current = ram;
 
     killOtherAudio();
@@ -834,10 +835,13 @@ export default function Pacman({ onFinish }) {
             onClick={() => killRandomGhost(eng.current)}
             style={{
               position: "absolute",
-              top: 20,
-              left: 20,
-              zIndex: 10,
+              top: 8,
+              right: 8,
+              zIndex: 5,
               ...btnS,
+              padding: "5px 10px",
+              fontSize: 8,
+              borderWidth: 2,
               borderColor: "#ff4444",
               color: "#ff4444"
             }}
@@ -846,34 +850,7 @@ export default function Pacman({ onFinish }) {
           </button>
         )}
 
-        <div style={{
-          position: "absolute",
-          left: -70,
-          top: "50%",
-          transform: "translateY(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10,
-        }}>
-          <div style={{ color: "#2ea84a", fontFamily: "'PokemonClassic',monospace", fontSize: 9, marginBottom: 4, letterSpacing: 1 }}>LIVES</div>
-          {Array.from({ length: Math.max(topLives, 0) }, (_, i) => (
-            <svg key={i} width="22" height="22" viewBox="0 0 22 22">
-              <defs>
-                <radialGradient id={`pacGradSide-${i}`} cx="30%" cy="30%" r="70%">
-                  <stop offset="0%" stopColor="#ffff88" />
-                  <stop offset="100%" stopColor="#ffcc00" />
-                </radialGradient>
-              </defs>
-              <path d="M 11 11 L 21 3 A 10 10 0 1 0 21 19 Z" fill={`url(#pacGradSide-${i})`} />
-              <circle cx="12" cy="5" r="1.5" fill="#000" />
-            </svg>
-          ))}
-        </div>
-
-        <div style={{position:"relative"}}>
-          <canvas ref={canvasRef} style={{display:"block", imageRendering:"pixelated"}}/>
-        </div>
+        <canvas ref={canvasRef} style={{display:"block", imageRendering:"pixelated", flexShrink: 0}}/>
 
         {uiState === "lost" && (
           <div style={{ position: "absolute", inset: 0, zIndex: 200 }}>
@@ -881,7 +858,7 @@ export default function Pacman({ onFinish }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 10, marginTop: 14, alignItems: "center" }}>
+        <div style={{ position: "absolute", bottom: 8, left: 8, display: "flex", gap: 10, alignItems: "center", zIndex: 5 }}>
           {Array.from({ length: extraLives }, (_, i) => (
             <svg key={i} width="22" height="22" viewBox="0 0 22 22">
               <defs>

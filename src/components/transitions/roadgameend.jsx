@@ -42,7 +42,6 @@ export default function RoadgameEnd({ onNext }) {
     <>
       <AppShell showCoins={false}>
         <style>{`
-          @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
           @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
           @keyframes roadgameAuraPulse {
             0%, 100% { opacity: 0.65; transform: scale(0.95); }

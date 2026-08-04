@@ -51,7 +51,6 @@ export default function BossfightInstructions({ onNext }) {
   return (
     <AppShell>
       <style>{`
-        @font-face { font-family: 'PokemonClassic'; src: url('/fonts/PokemonClassic.ttf') format('truetype'); }
         .text { font-family: 'PokemonClassic', monospace; color: #fff; font-size: 16px; letter-spacing: 0.5px; line-height: 1.7; }
       `}</style>
 
