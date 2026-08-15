@@ -12,6 +12,7 @@ import Galaga from "./components/Galaga";
 import Roadgame from "./components/roadgame";
 import Tetris from "./components/tetris";
 import BossFight from "./components/bossfight";
+import CompeteNameEntry from "./components/transitions/CompeteNameEntry";
 
 import { useCoins, GAME_ORDER } from "./components/CoinContext";
 
@@ -44,10 +45,23 @@ const PHASES = ["spreadsheet", "mainGame", ...GAME_ORDER, "bossfight"];
 export default function App() {
   const [fadeIn, setFadeIn] = useState(false);
   const [debugOpen,setDebugOpen] = useState(false);
-  const { coins, markGameComplete, hasProgress, resetProgress, addCoins } = useCoins();
+  const { coins, markGameComplete, hasProgress, resetProgress, addCoins, markBeaten, competing, finishCompete } = useCoins();
   const [phase, setPhase] = useState(() => hasProgress ? "resume" : "spreadsheet");
   const [zoomTarget, setZoomTarget] = useState("mainGame");
   const typedRef = useRef("");
+
+  // Fires once the boss-fight credits (BossEnding) finish scrolling.
+  const handleCreditsFinished = () => {
+    markBeaten();
+    const wasCompeting = competing;
+    finishCompete();
+    if (wasCompeting) {
+      setPhase("competeName");
+    } else {
+      resetProgress();
+      setPhase("spreadsheet");
+    }
+  };
 
   const finishGame = (gameKey) => {
     markGameComplete(gameKey);
@@ -140,9 +154,15 @@ export default function App() {
     if (phase === "bossfight") {
       return (
         <BossFight
-          onWin={() => setPhase("mainGame")}
+          onWin={handleCreditsFinished}
           onLose={() => setPhase("mainGame")}
         />
+      );
+    }
+
+    if (phase === "competeName") {
+      return (
+        <CompeteNameEntry onDone={() => { resetProgress(); setPhase("spreadsheet"); }} />
       );
     }
 
