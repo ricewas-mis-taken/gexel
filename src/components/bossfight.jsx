@@ -175,7 +175,7 @@ const TAUNT_LINE = "Haha, you are weak.";
 const MONOLOGUE = "It…it…it.. Can't be! How did you get the RAM stick? And working!!!! By what means did you defeat Kyran's race time? How did you open the Thousand-Year apple? What sorcery did you proclaim to bewitch the King Frog to hand over his only Lily Flower? And the…the…the…BUTTERFLIES!!!!";
 
 export default function BossFight({ onWin, onLose }) {
-  const { coins } = useCoins();
+  const { coins, recordDeath } = useCoins();
   const keys = useRef({});
 
   const ramBonus = Math.min(coins || 0, RAM_MAX);
@@ -583,6 +583,7 @@ export default function BossFight({ onWin, onLose }) {
   useEffect(() => {
     if (phase === "fight" && playerHP <= 0 && ramHP <= 0 && !bossHealedOnce.current) {
       setPhase("lost");
+      recordDeath("bossfight");
     }
   }, [playerHP, ramHP, phase]);
 

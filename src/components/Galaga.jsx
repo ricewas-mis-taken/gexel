@@ -82,7 +82,7 @@ function stopAllSfx(trackerRef) {
 
 export default function Galaga({ onNext }) {
   const canvasRef = useRef(null);
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const [jailBroken, setJailBroken] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [lives, setLives] = useState(3);
@@ -372,6 +372,7 @@ export default function Galaga({ onNext }) {
             st.gameOver = true;
             st.paused = true;
             discardSession();
+            recordDeath("galaga");
             if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
             if (deathMusicRef.current) { deathMusicRef.current.pause(); deathMusicRef.current = null; }
             stopAllSfx(sfxRef);

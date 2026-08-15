@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 
 const CoinContext = createContext(null);
 const STORAGE_KEY = "gexel_coins_total";
 const PROGRESS_KEY="gexel_progress";
 const NAME_KEY = "gexel_player_name";
+const BEATEN_KEY = "gexel_beaten";
 
 export const GAME_ORDER = ["pacman", "galaga", "frogger", "roadgame", "tetris"];
 
@@ -22,6 +23,19 @@ export function CoinProvider({ children })
   });
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(NAME_KEY) || "");
+
+  // "Beaten" tracks whether the credits have ever fully played out once,
+  // independent of PROGRESS_KEY/STORAGE_KEY so resetProgress() (a normal,
+  // non-compete run finishing) never hides the Compete button again.
+  const [beaten, setBeaten] = useState(() => localStorage.getItem(BEATEN_KEY) === "1");
+
+  const [competing, setCompeting] = useState(false);
+  const [competeStartedAt, setCompeteStartedAt] = useState(null);
+  const [deaths, setDeaths] = useState({});
+  const [competeResult, setCompeteResult] = useState(null);
+  const runCoinsStartRef = useRef(0);
+  const competingRef = useRef(false);
+  useEffect(() => { competingRef.current = competing; }, [competing]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(coins));
@@ -71,11 +85,51 @@ export function CoinProvider({ children })
 
   const hasProgress = Object.keys(progress).length > 0;
 
+  const markBeaten = () => {
+    if (beaten) return;
+    setBeaten(true);
+    localStorage.setItem(BEATEN_KEY, "1");
+  };
+
+  const startCompete = () => {
+    setDeaths({});
+    runCoinsStartRef.current = coins + sessionCoins;
+    setCompeteResult(null);
+    setCompeteStartedAt(Date.now());
+    setCompeting(true);
+  };
+
+  // Stable identity (useCallback + a ref for the guard) so games that embed
+  // recordDeath in their own empty-deps useCallback (e.g. frogger's die())
+  // never capture a stale closure that always reads competing as false.
+  const recordDeath = useCallback((gameKey) => {
+    if (!competingRef.current) return;
+    setDeaths(d => ({ ...d, [gameKey]: (d[gameKey] || 0) + 1 }));
+  }, []);
+
+  // Reads the run's stats before anything else (resetProgress, a new
+  // startCompete) can change coins/deaths out from under it.
+  const finishCompete = () => {
+    if (!competing) return competeResult;
+    const elapsedMs = Date.now() - (competeStartedAt || Date.now());
+    const coinsEarned = Math.max(0, (coins + sessionCoins) - runCoinsStartRef.current);
+    const deathsTotal = Object.values(deaths).reduce((a, b) => a + b, 0);
+    const result = { elapsedMs, coinsEarned, deaths: { ...deaths }, deathsTotal };
+    setCompeting(false);
+    setCompeteResult(result);
+    return result;
+  };
+
+  const clearCompeteResult = () => setCompeteResult(null);
+
   return (
     <CoinContext.Provider value={{
       coins, sessionCoins, addSessionCoins, commitSession, discardSession, addCoins,
       progress, markGameComplete, getNextGame, resetProgress, hasProgress,
       playerName, setPlayerName,
+      beaten, markBeaten,
+      competing, competeStartedAt, startCompete, finishCompete,
+      deaths, recordDeath, competeResult, clearCompeteResult,
     }}>
       {children}
     </CoinContext.Provider>
