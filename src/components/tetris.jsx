@@ -217,7 +217,7 @@ function MatrixRain() {
 }
 
 export default function Tetris({ onFinish }) {
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const canvasRef = useRef(null);
   const nextCanvasRef = useRef(null);
   const overlayCanvasRef = useRef(null);
@@ -378,6 +378,7 @@ export default function Tetris({ onFinish }) {
       gameOverRef.current = true;
       setGameOver(true);
       discardSession();
+      recordDeath("tetris");
       return;
     }
     pieceRef.current = piece;

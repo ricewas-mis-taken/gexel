@@ -57,7 +57,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 export default function RoadGame({ onFinish }) {
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const canvasRef = useRef(null);
   const imagesRef = useRef({});
   const rafRef = useRef(null);
@@ -155,6 +155,7 @@ export default function RoadGame({ onFinish }) {
   useEffect(() => {
     if (gameState === "crashing") {
       discardSession();
+      recordDeath("roadgame");
       if (crashAudioRef.current) {
         crashAudioRef.current.currentTime = 0;
         crashAudioRef.current.play().catch(e => console.warn("Crash audio blocked", e));

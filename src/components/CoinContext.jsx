@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 
 const CoinContext = createContext(null);
 const STORAGE_KEY = "gexel_coins_total";
@@ -34,6 +34,8 @@ export function CoinProvider({ children })
   const [deaths, setDeaths] = useState({});
   const [competeResult, setCompeteResult] = useState(null);
   const runCoinsStartRef = useRef(0);
+  const competingRef = useRef(false);
+  useEffect(() => { competingRef.current = competing; }, [competing]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(coins));
@@ -97,10 +99,13 @@ export function CoinProvider({ children })
     setCompeting(true);
   };
 
-  const recordDeath = (gameKey) => {
-    if (!competing) return;
+  // Stable identity (useCallback + a ref for the guard) so games that embed
+  // recordDeath in their own empty-deps useCallback (e.g. frogger's die())
+  // never capture a stale closure that always reads competing as false.
+  const recordDeath = useCallback((gameKey) => {
+    if (!competingRef.current) return;
     setDeaths(d => ({ ...d, [gameKey]: (d[gameKey] || 0) + 1 }));
-  };
+  }, []);
 
   // Reads the run's stats before anything else (resetProgress, a new
   // startCompete) can change coins/deaths out from under it.
