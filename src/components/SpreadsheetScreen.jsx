@@ -88,7 +88,7 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
   };
 
   return (
-    <AppShell showCoins={false}>
+    <AppShell showCoins={false} showCompete>
       <style>{`
         @keyframes gexel-glitch-shift {
           0%   { transform: translate(0, 0); filter: hue-rotate(0deg) contrast(1); }
