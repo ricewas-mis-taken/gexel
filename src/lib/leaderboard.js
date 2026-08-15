@@ -1,7 +1,8 @@
 // Shared with lucastang.dev/gexel/index.html, which renders the actual
 // leaderboard panel — this module only needs to submit a finished compete
-// run's score. Placeholder subdomain, same pattern as GITHUB_API_URL in
-// lucastang.dev/boot.js: replace after `wrangler deploy`.
+// run's score. Same worker subdomain lucastang.dev/boot.js already uses
+// live for GITHUB_API_URL; this specific /api/leaderboard route just needs
+// to be deployed on it (see worker/src/index.js).
 const LEADERBOARD_API_URL = "https://lucastang-dev-api.lucastang.workers.dev/api/leaderboard";
 
 const LOCAL_KEY = "gexel_leaderboard_local";
