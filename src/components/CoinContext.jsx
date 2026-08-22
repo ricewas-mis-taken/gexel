@@ -4,7 +4,6 @@ const CoinContext = createContext(null);
 const STORAGE_KEY = "gexel_coins_total";
 const PROGRESS_KEY="gexel_progress";
 const NAME_KEY = "gexel_player_name";
-const BEATEN_KEY = "gexel_beaten";
 
 export const GAME_ORDER = ["pacman", "galaga", "frogger", "roadgame", "tetris"];
 
@@ -24,11 +23,6 @@ export function CoinProvider({ children })
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(NAME_KEY) || "");
 
-  // "Beaten" tracks whether the credits have ever fully played out once,
-  // independent of PROGRESS_KEY/STORAGE_KEY so resetProgress() (a normal,
-  // non-compete run finishing) never hides the Compete button again.
-  const [beaten, setBeaten] = useState(() => localStorage.getItem(BEATEN_KEY) === "1");
-
   const [competing, setCompeting] = useState(false);
   const [competeStartedAt, setCompeteStartedAt] = useState(null);
   const [deaths, setDeaths] = useState({});
@@ -36,6 +30,34 @@ export function CoinProvider({ children })
   const runCoinsStartRef = useRef(0);
   const competingRef = useRef(false);
   useEffect(() => { competingRef.current = competing; }, [competing]);
+
+  // Tracks time spent with the tab hidden so the compete timer (and final
+  // score) don't balloon just because the player tabbed away mid-run.
+  const pausedAccumRef = useRef(0);
+  const hiddenAtRef = useRef(null);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (competingRef.current && hiddenAtRef.current === null) {
+          hiddenAtRef.current = Date.now();
+        }
+      } else if (hiddenAtRef.current !== null) {
+        pausedAccumRef.current += Date.now() - hiddenAtRef.current;
+        hiddenAtRef.current = null;
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  // Current run time excluding any stretches spent with the tab hidden.
+  const getCompeteElapsedMs = useCallback(() => {
+    if (!competeStartedAt) return 0;
+    const now = Date.now();
+    const openHiddenMs = hiddenAtRef.current !== null ? now - hiddenAtRef.current : 0;
+    return Math.max(0, now - competeStartedAt - pausedAccumRef.current - openHiddenMs);
+  }, [competeStartedAt]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(coins));
@@ -81,20 +103,22 @@ export function CoinProvider({ children })
     setSessionCoins(0);
     localStorage.removeItem(PROGRESS_KEY);
     localStorage.removeItem(STORAGE_KEY);
+    setCompeting(false);
+    setCompeteStartedAt(null);
+    setDeaths({});
+    setCompeteResult(null);
+    pausedAccumRef.current = 0;
+    hiddenAtRef.current = null;
   };
 
   const hasProgress = Object.keys(progress).length > 0;
-
-  const markBeaten = () => {
-    if (beaten) return;
-    setBeaten(true);
-    localStorage.setItem(BEATEN_KEY, "1");
-  };
 
   const startCompete = () => {
     setDeaths({});
     runCoinsStartRef.current = coins + sessionCoins;
     setCompeteResult(null);
+    pausedAccumRef.current = 0;
+    hiddenAtRef.current = null;
     setCompeteStartedAt(Date.now());
     setCompeting(true);
   };
@@ -111,7 +135,7 @@ export function CoinProvider({ children })
   // startCompete) can change coins/deaths out from under it.
   const finishCompete = () => {
     if (!competing) return competeResult;
-    const elapsedMs = Date.now() - (competeStartedAt || Date.now());
+    const elapsedMs = getCompeteElapsedMs();
     const coinsEarned = Math.max(0, (coins + sessionCoins) - runCoinsStartRef.current);
     const deathsTotal = Object.values(deaths).reduce((a, b) => a + b, 0);
     const result = { elapsedMs, coinsEarned, deaths: { ...deaths }, deathsTotal };
@@ -127,8 +151,7 @@ export function CoinProvider({ children })
       coins, sessionCoins, addSessionCoins, commitSession, discardSession, addCoins,
       progress, markGameComplete, getNextGame, resetProgress, hasProgress,
       playerName, setPlayerName,
-      beaten, markBeaten,
-      competing, competeStartedAt, startCompete, finishCompete,
+      competing, competeStartedAt, startCompete, finishCompete, getCompeteElapsedMs,
       deaths, recordDeath, competeResult, clearCompeteResult,
     }}>
       {children}
