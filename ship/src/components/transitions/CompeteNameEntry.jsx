@@ -172,8 +172,8 @@ export default function CompeteNameEntry({ onDone }) {
               maxLength={NAME_MAX}
               disabled={submitting}
               style={{
-                fontFamily: "'PokemonClassic', monospace", fontSize: 20, letterSpacing: 6,
-                textAlign: "center", width: 140, background: "#111", color: "#fff",
+                fontFamily: "'PokemonClassic', monospace", fontSize: 20, letterSpacing: 5,
+                textAlign: "center", width: 190, boxSizing: "border-box", background: "#111", color: "#fff",
                 border: "2px solid #2ea84a", borderRadius: 3, padding: "6px 8px",
               }}
             />
