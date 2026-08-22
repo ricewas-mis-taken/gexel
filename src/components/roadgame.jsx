@@ -560,34 +560,10 @@ export default function RoadGame({ onFinish }) {
     onFinish?.();
   }, [gameState, onFinish]);
 
-  function instantWin() {
-    if (countdownAudioRef.current) {
-      countdownAudioRef.current.pause();
-      countdownAudioRef.current.currentTime = 0;
-    }
-    setCoinCount(COINS_TO_WIN);
-    setGameState("won");
-  }
-
   return (
     <AppShell>
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "#000", display: "flex", alignItems: "flex-start", justifyContent: "center", position: "relative" }}>
         <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: CANVAS_W, height: CANVAS_H }} />
-
-        {(gameState === "countdown" || gameState === "playing") && (
-          <button
-            onClick={instantWin}
-            style={{
-              position: "absolute", bottom: 14, left: 14, zIndex: 150,
-              background: "rgba(10,20,12,0.72)", color: "#ffd54a",
-              border: "2px solid #2ea84a", borderRadius: 8,
-              padding: "6px 10px", fontFamily: "'PokemonClassic', monospace",
-              fontSize: 12, cursor: "pointer",
-            }}
-          >
-            Instant Win
-          </button>
-        )}
 
         {gameState === "crashed" && (
           <div style={{ position: "absolute", inset: 0, zIndex: 200 }}>
