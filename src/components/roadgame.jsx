@@ -225,6 +225,7 @@ export default function RoadGame({ onFinish }) {
     playerRef.current = { x: CANVAS_W / 2, y: CANVAS_H - 110, w: 90, h: 90 };
     sideScrollRef.current = 0;
     coinSideRef.current = Math.random() < 0.5 ? -1 : 1;
+    coinCountRef.current = 0;
     setCoinCount(0);
     setCountdown(3);
     setGameState("countdown");
@@ -298,10 +299,6 @@ export default function RoadGame({ onFinish }) {
     player.x = Math.max(ROAD_LEFT + player.w / 2, Math.min(ROAD_RIGHT - player.w / 2, player.x));
 
     const elapsed = elapsedSeconds();
-    if (elapsed > WIN_TIME_LIMIT && coinCountRef.current < COINS_TO_WIN) {
-      setGameState("crashing");
-      return;
-    }
     const scrollSpeed = 3.5 + elapsed * 0.02;
     sideScrollRef.current += scrollSpeed;
 
@@ -400,16 +397,20 @@ export default function RoadGame({ onFinish }) {
         if (Math.sqrt(dx * dx + dy * dy) < c.r + player.w / 2) {
           c.collected = true;
           addSessionCoins(1);
-          setCoinCount(cc => {
-            const next = cc + 1;
-            if (next >= COINS_TO_WIN) {
-              setGameState(elapsedSeconds() <= WIN_TIME_LIMIT ? "won" : "crashing");
-            }
-            return next;
-          });
+          coinCountRef.current += 1;
+          setCoinCount(coinCountRef.current);
         }
       }
     });
+
+    if (coinCountRef.current >= COINS_TO_WIN) {
+      setGameState(elapsed <= WIN_TIME_LIMIT ? "won" : "crashing");
+      return;
+    }
+    if (elapsed > WIN_TIME_LIMIT) {
+      setGameState("crashing");
+      return;
+    }
 
     setUiTick(t => t + 1);
   }
