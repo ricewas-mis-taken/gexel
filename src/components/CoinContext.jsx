@@ -4,8 +4,33 @@ const CoinContext = createContext(null);
 const STORAGE_KEY = "gexel_coins_total";
 const PROGRESS_KEY="gexel_progress";
 const NAME_KEY = "gexel_player_name";
+const COMPETE_KEY = "gexel_compete_run";
 
 export const GAME_ORDER = ["pacman", "galaga", "frogger", "roadgame", "tetris"];
+
+// The in-progress compete run (start time, accumulated pause, deaths, coin
+// baseline) is persisted here so leaving the tab — closing it, refreshing,
+// coming back via the Resume screen — doesn't silently restart the clock.
+function readCompeteState() {
+  try {
+    const raw = localStorage.getItem(COMPETE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCompeteState(state) {
+  try {
+    localStorage.setItem(COMPETE_KEY, JSON.stringify(state));
+  } catch {
+    // storage full/blocked — the run just won't survive a reload
+  }
+}
+
+function clearCompeteState() {
+  localStorage.removeItem(COMPETE_KEY);
+}
 
 export function CoinProvider({ children })
 {
@@ -28,18 +53,48 @@ export function CoinProvider({ children })
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(NAME_KEY) || "");
 
-  const [competing, setCompeting] = useState(false);
-  const [competeStartedAt, setCompeteStartedAt] = useState(null);
-  const [deaths, setDeaths] = useState({});
+  // Read once on mount; every other piece of restored compete state below
+  // derives from this same snapshot instead of re-parsing localStorage.
+  const [initialCompete] = useState(() => readCompeteState());
+
+  const [competing, setCompeting] = useState(() => !!initialCompete);
+  const [competeStartedAt, setCompeteStartedAt] = useState(() => initialCompete?.startedAt ?? null);
+  const [deaths, setDeaths] = useState(() => initialCompete?.deaths ?? {});
   const [competeResult, setCompeteResult] = useState(null);
-  const runCoinsStartRef = useRef(0);
-  const competingRef = useRef(false);
+  const runCoinsStartRef = useRef(initialCompete?.runCoinsStart ?? 0);
+  const competingRef = useRef(!!initialCompete);
   useEffect(() => { competingRef.current = competing; }, [competing]);
 
-  // Tracks time spent with the tab hidden so the compete timer (and final
-  // score) don't balloon just because the player tabbed away mid-run.
-  const pausedAccumRef = useRef(0);
+  // Tracks time spent with the tab hidden (or the app fully closed) so the
+  // compete timer — and the final score — don't balloon just because the
+  // player tabbed away or reloaded mid-run. Any gap since the last saved
+  // heartbeat is treated as paused, since we have no way to verify the
+  // player was actually playing during it.
+  const pausedAccumRef = useRef(
+    initialCompete
+      ? (initialCompete.pausedAccum ?? 0) + Math.max(0, Date.now() - (initialCompete.lastHeartbeat ?? Date.now()))
+      : 0
+  );
   const hiddenAtRef = useRef(null);
+
+  // Refs mirroring competeStartedAt/deaths so the listeners below (set up
+  // once, in an empty-deps effect) always persist the current values
+  // instead of a stale closure from whenever they were registered.
+  const competeStartedAtRef = useRef(competeStartedAt);
+  useEffect(() => { competeStartedAtRef.current = competeStartedAt; }, [competeStartedAt]);
+  const deathsRef = useRef(deaths);
+  useEffect(() => { deathsRef.current = deaths; }, [deaths]);
+
+  const persistCompete = useCallback(() => {
+    if (!competingRef.current || !competeStartedAtRef.current) return;
+    writeCompeteState({
+      startedAt: competeStartedAtRef.current,
+      pausedAccum: pausedAccumRef.current,
+      deaths: deathsRef.current,
+      runCoinsStart: runCoinsStartRef.current,
+      lastHeartbeat: Date.now(),
+    });
+  }, []);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -51,10 +106,15 @@ export function CoinProvider({ children })
         pausedAccumRef.current += Date.now() - hiddenAtRef.current;
         hiddenAtRef.current = null;
       }
+      persistCompete();
     };
     document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
+    window.addEventListener("beforeunload", persistCompete);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("beforeunload", persistCompete);
+    };
+  }, [persistCompete]);
 
   // Current run time excluding any stretches spent with the tab hidden.
   const getCompeteElapsedMs = useCallback(() => {
@@ -114,6 +174,7 @@ export function CoinProvider({ children })
     setCompeteResult(null);
     pausedAccumRef.current = 0;
     hiddenAtRef.current = null;
+    clearCompeteState();
   };
 
   const hasProgress = Object.keys(progress).length > 0;
@@ -124,8 +185,10 @@ export function CoinProvider({ children })
     setCompeteResult(null);
     pausedAccumRef.current = 0;
     hiddenAtRef.current = null;
-    setCompeteStartedAt(Date.now());
+    const startedAt = Date.now();
+    setCompeteStartedAt(startedAt);
     setCompeting(true);
+    writeCompeteState({ startedAt, pausedAccum: 0, deaths: {}, runCoinsStart: coins + sessionCoins, lastHeartbeat: startedAt });
   };
 
   // Stable identity (useCallback + a ref for the guard) so games that embed
@@ -133,8 +196,13 @@ export function CoinProvider({ children })
   // never capture a stale closure that always reads competing as false.
   const recordDeath = useCallback((gameKey) => {
     if (!competingRef.current) return;
-    setDeaths(d => ({ ...d, [gameKey]: (d[gameKey] || 0) + 1 }));
-  }, []);
+    setDeaths(d => {
+      const next = { ...d, [gameKey]: (d[gameKey] || 0) + 1 };
+      deathsRef.current = next;
+      return next;
+    });
+    persistCompete();
+  }, [persistCompete]);
 
   // Reads the run's stats before anything else (resetProgress, a new
   // startCompete) can change coins/deaths out from under it.
@@ -146,6 +214,7 @@ export function CoinProvider({ children })
     const result = { elapsedMs, coinsEarned, deaths: { ...deaths }, deathsTotal };
     setCompeting(false);
     setCompeteResult(result);
+    clearCompeteState();
     return result;
   };
 
