@@ -609,7 +609,7 @@ export default function Tetris({ onFinish }) {
                 setAppleFlash(true);
                 playBite();
                 setTimeout(() => setAppleFlash(false), 350);
-                spawnPiece();
+                checkLines();
               }
             }
           }
