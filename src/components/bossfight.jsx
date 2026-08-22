@@ -676,8 +676,13 @@ export default function BossFight({ onWin, onLose }) {
       clearInterval(id);
       setPlayerX(playerTarget);
       setEnemyX(enemyTarget);
+      // Hold the *first* fire frame (RAM stick raised, not yet charged) —
+      // the actual charge-up plays for the first time in fireCharge below.
+      // Jumping to the last frame here made the player look already fully
+      // charged during the taunt, then visibly discharge and recharge once
+      // fireCharge started its own 0-to-full animation.
       if (ANIM.fire.length > 0) {
-        setPlayerAction({ type: "fire", frame: ANIM.fire.length - 1, lock: true });
+        setPlayerAction({ type: "fire", frame: 0, lock: true });
       }
       setPhase("monologue");
     }, WALK_CENTER_DURATION_MS);
