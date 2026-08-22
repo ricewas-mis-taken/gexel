@@ -3,6 +3,7 @@ import AppShell from "../AppShell";
 import { PixelWizard } from "../OrientationScreen";
 import { fadeOutAudio } from "../audioFade";
 import { BlockLetter } from "../IntroScreen";
+import { useCoins } from "../CoinContext";
 
 const endCreditMusic = import.meta.glob("../../assets/endcredit.*", { eager: true, import: "default" });
 const END_CREDIT_SRC = Object.values(endCreditMusic)[0] || null;
@@ -36,6 +37,7 @@ const SCROLL_DURATION_S = 32;
 const FADE_MS = 2500;
 
 export default function BossEnding({ onDone }) {
+  const { finishCompete } = useCoins();
   const [stage,setStage] = useState("wizard");
     const [creditsDone, setCreditsDone] = useState(false);
   const audioRef = useRef(null);
@@ -73,6 +75,10 @@ export default function BossEnding({ onDone }) {
   const handleScrollEnd = () => {
     if (audioRef.current) fadeOutAudio(audioRef.current, FADE_MS);
     setCreditsDone(true);
+    // Freeze the compete run's stats the moment the credits actually end,
+    // not after the fade-to-black finishes — the player is done playing
+    // here, so the last couple seconds of fade shouldn't tick the clock.
+    finishCompete();
     setTimeout(() => { setStage("black"); onDone && onDone(); }, FADE_MS);
   };
 
