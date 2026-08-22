@@ -116,12 +116,14 @@ const RECENTLY_HIT_AGGRO_MS = 1500;
 const PLAYER_ANIM_SLOWDOWN = 5;
 const ENEMY_ANIM_SLOWDOWN = 4;
 
-const WALK_CENTER_EASE = 0.12;
-const WALK_CENTER_JITTER_MIN = 0.6;
-const WALK_CENTER_JITTER_MAX = 1.5;
+const WALK_CENTER_EASE = 0.045;
+const WALK_CENTER_JITTER_MIN = 0.85;
+const WALK_CENTER_JITTER_MAX = 1.15;
 const WALK_CENTER_TICK_MS = 30;
-const WALK_CENTER_DURATION_MS = 1000;
-const WALK_CENTER_ANIM_SLOWDOWN = 2;
+const WALK_CENTER_DURATION_MS = 2400;
+const WALK_CENTER_ANIM_SLOWDOWN = 3;
+
+const GUN_FRAME_MS = 500;
 
 const PUNCH_DMG=8;
 const KICK_DMG=14;
@@ -647,7 +649,7 @@ export default function BossFight({ onWin, onLose }) {
       } else {
         setPlayerAction({ type: "gun", frame: i, lock: true });
       }
-    }, 200);
+    }, GUN_FRAME_MS);
     return () => clearInterval(id);
   }, [phase]);
 
@@ -836,6 +838,11 @@ export default function BossFight({ onWin, onLose }) {
             70%  { transform: scale(1.03,0.97) skewX(-1.5deg) translateX(-1px); filter: brightness(1.2) saturate(1.2) hue-rotate(6deg); }
             100% { transform: scale(1,1) skewX(0deg) translateX(0); filter: brightness(1) saturate(1) hue-rotate(0deg); }
           }
+          @keyframes gexel-gun-charge {
+            0%   { opacity: 0; transform: scale(0.3); }
+            70%  { opacity: 1; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.15); }
+          }
         `}</style>
 
         {flashRed && (
@@ -879,32 +886,41 @@ export default function BossFight({ onWin, onLose }) {
           );
         })()}
 
-        {isKillPose ? (
-          <div style={{ position: "absolute", left: KILL_LEFT, top: KILL_TOP, width: KILL_W, height: KILL_H }}>
-            <img
-              src={spr("kill1")}
-              alt="the RAM beam overloading the boss"
-              style={{
-                position: "absolute", inset: 0, width: "100%", height: "100%", imageRendering: "pixelated",
-                clipPath: `inset(0 ${100 - KILL_BEAM_SPLIT_PCT}% 0 0)`, WebkitClipPath: `inset(0 ${100 - KILL_BEAM_SPLIT_PCT}% 0 0)`,
-                maskImage: KILL_FEET_FADE_MASK, WebkitMaskImage: KILL_FEET_FADE_MASK,
-              }}
-            />
-            <img
-              src={spr("kill1")}
-              alt=""
-              aria-hidden="true"
-              style={{
-                position: "absolute", inset: 0, width: "100%", height: "100%", imageRendering: "pixelated",
-                clipPath: `inset(0 0 0 ${KILL_BEAM_SPLIT_PCT}%)`, WebkitClipPath: `inset(0 0 0 ${KILL_BEAM_SPLIT_PCT}%)`,
-                maskImage: KILL_FEET_FADE_MASK, WebkitMaskImage: KILL_FEET_FADE_MASK,
-                opacity: deathOpacity,
-                animation: phase === "firebreath" ? "killwrithe 0.45s ease-in-out infinite" : "none",
-              }}
-            />
-          </div>
-        ) : (
-          <>
+        <div style={{
+          position: "absolute", left: KILL_LEFT, top: KILL_TOP, width: KILL_W, height: KILL_H,
+          opacity: isKillPose ? 1 : 0, transition: "opacity 0.5s ease", pointerEvents: "none",
+        }}>
+          <img
+            src={spr("kill1")}
+            alt="the RAM beam overloading the boss"
+            style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%", imageRendering: "pixelated",
+              clipPath: `inset(0 ${100 - KILL_BEAM_SPLIT_PCT}% 0 0)`, WebkitClipPath: `inset(0 ${100 - KILL_BEAM_SPLIT_PCT}% 0 0)`,
+              maskImage: KILL_FEET_FADE_MASK, WebkitMaskImage: KILL_FEET_FADE_MASK,
+            }}
+          />
+          <img
+            src={spr("kill1")}
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%", imageRendering: "pixelated",
+              clipPath: `inset(0 0 0 ${KILL_BEAM_SPLIT_PCT}%)`, WebkitClipPath: `inset(0 0 0 ${KILL_BEAM_SPLIT_PCT}%)`,
+              maskImage: KILL_FEET_FADE_MASK, WebkitMaskImage: KILL_FEET_FADE_MASK,
+              opacity: deathOpacity,
+              animation: phase === "firebreath" ? "killwrithe 0.45s ease-in-out infinite" : "none",
+            }}
+          />
+        </div>
+        <div style={{ opacity: isKillPose ? 0 : 1, transition: "opacity 0.5s ease", pointerEvents: isKillPose ? "none" : "auto" }}>
+            {phase === "gunIntro" && (
+              <div style={{
+                position: "absolute", left: playerX + CHAR_W / 2 - 60, top: FLOOR_Y - CHAR_H * 0.6 - 60,
+                width: 120, height: 120, borderRadius: "50%", pointerEvents: "none",
+                background: "radial-gradient(circle, rgba(154,120,255,0.85) 0%, rgba(154,120,255,0.25) 45%, rgba(154,120,255,0) 75%)",
+                animation: `gexel-gun-charge ${ANIM.gun.length * GUN_FRAME_MS}ms ease-in forwards`,
+              }} />
+            )}
             {(() => {
               const isFirePose = playerAction.type === "fire" && !playerBlockFrame;
               const playerBoxW = isFirePose ? FIRE_W : CHAR_W;
@@ -955,8 +971,7 @@ export default function BossFight({ onWin, onLose }) {
                 textShadow: "0 0 4px #000, 0 0 4px #000", letterSpacing: 1, pointerEvents: "none",
               }}>STUNNED!</div>
             )}
-          </>
-        )}
+        </div>
 
         {dialogue && (
           <div style={{
