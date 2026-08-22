@@ -16,11 +16,11 @@ import CompeteNameEntry from "./components/transitions/CompeteNameEntry";
 
 import { useCoins, GAME_ORDER } from "./components/CoinContext";
 
-import PacmanIntro from "./components/transitions/PacmanIntro";
-import PacmanInstructions from "./components/transitions/PacmanInstructions";
+import PacmanIntro from "./components/transitions/pacmanintro";
+import PacmanInstructions from "./components/transitions/pacmaninstructions";
 import PacmanEnding from "./components/transitions/pacmanending";
-import GalagaIntro from "./components/transitions/GalagaIntro";
-import GalagaInstructions from "./components/transitions/GalagaInstruction";
+import GalagaIntro from "./components/transitions/galagaintro";
+import GalagaInstructions from "./components/transitions/galagainstruction";
 import FroggerIntro from "./components/transitions/froggerintro";
 import FroggerInstructions from "./components/transitions/froggerinstructions";
 import FroggerEnd from "./components/transitions/froggerend";
