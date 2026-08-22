@@ -58,9 +58,12 @@ export default function CompeteNameEntry({ onDone }) {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
-    await submitScore(name.trim() || "-----", score);
-    clearCompeteResult();
-    onDone && onDone();
+    try {
+      await submitScore(name.trim() || "-----", score);
+    } finally {
+      clearCompeteResult();
+      onDone && onDone();
+    }
   };
 
   return (
