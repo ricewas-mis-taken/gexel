@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 
 import jailImg from "../assets/jail.png";
 import jail1Img from "../assets/jail1.png";
@@ -440,6 +440,11 @@ export default function Galaga({ onNext }) {
 
       if (!st.paused) {
         st.groupXOffset += st.groupDir * 0.5;
+        // groupYOffset is intentionally uncapped: it's the level's soft time
+        // limit. Every time the formation's horizontal sweep hits an edge,
+        // the back rows creep 10px closer to the player. A player who just
+        // dodges forever without clearing the jail/formation eventually gets
+        // forced into a hit — this is by design, not a bug. Do not clamp it.
         if (st.groupXOffset > 160) {
           st.groupXOffset = 160;
           st.groupDir=-1;

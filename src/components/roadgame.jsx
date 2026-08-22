@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 import car2Img from "../assets/speedrace/car2.png";
 import roadblock1Img from "../assets/speedrace/roadblock1.png";
 import roadblock2Img from "../assets/speedrace/roadblock2.png";
@@ -225,6 +225,7 @@ export default function RoadGame({ onFinish }) {
     playerRef.current = { x: CANVAS_W / 2, y: CANVAS_H - 110, w: 90, h: 90 };
     sideScrollRef.current = 0;
     coinSideRef.current = Math.random() < 0.5 ? -1 : 1;
+    coinCountRef.current = 0;
     setCoinCount(0);
     setCountdown(3);
     setGameState("countdown");
@@ -298,10 +299,6 @@ export default function RoadGame({ onFinish }) {
     player.x = Math.max(ROAD_LEFT + player.w / 2, Math.min(ROAD_RIGHT - player.w / 2, player.x));
 
     const elapsed = elapsedSeconds();
-    if (elapsed > WIN_TIME_LIMIT && coinCountRef.current < COINS_TO_WIN) {
-      setGameState("crashing");
-      return;
-    }
     const scrollSpeed = 3.5 + elapsed * 0.02;
     sideScrollRef.current += scrollSpeed;
 
@@ -400,16 +397,20 @@ export default function RoadGame({ onFinish }) {
         if (Math.sqrt(dx * dx + dy * dy) < c.r + player.w / 2) {
           c.collected = true;
           addSessionCoins(1);
-          setCoinCount(cc => {
-            const next = cc + 1;
-            if (next >= COINS_TO_WIN) {
-              setGameState(elapsedSeconds() <= WIN_TIME_LIMIT ? "won" : "crashing");
-            }
-            return next;
-          });
+          coinCountRef.current += 1;
+          setCoinCount(coinCountRef.current);
         }
       }
     });
+
+    if (coinCountRef.current >= COINS_TO_WIN) {
+      setGameState(elapsed <= WIN_TIME_LIMIT ? "won" : "crashing");
+      return;
+    }
+    if (elapsed > WIN_TIME_LIMIT) {
+      setGameState("crashing");
+      return;
+    }
 
     setUiTick(t => t + 1);
   }
@@ -559,34 +560,10 @@ export default function RoadGame({ onFinish }) {
     onFinish?.();
   }, [gameState, onFinish]);
 
-  function instantWin() {
-    if (countdownAudioRef.current) {
-      countdownAudioRef.current.pause();
-      countdownAudioRef.current.currentTime = 0;
-    }
-    setCoinCount(COINS_TO_WIN);
-    setGameState("won");
-  }
-
   return (
     <AppShell>
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "#000", display: "flex", alignItems: "flex-start", justifyContent: "center", position: "relative" }}>
         <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: CANVAS_W, height: CANVAS_H }} />
-
-        {(gameState === "countdown" || gameState === "playing") && (
-          <button
-            onClick={instantWin}
-            style={{
-              position: "absolute", bottom: 14, left: 14, zIndex: 150,
-              background: "rgba(10,20,12,0.72)", color: "#ffd54a",
-              border: "2px solid #2ea84a", borderRadius: 8,
-              padding: "6px 10px", fontFamily: "'PokemonClassic', monospace",
-              fontSize: 12, cursor: "pointer",
-            }}
-          >
-            Instant Win
-          </button>
-        )}
 
         {gameState === "crashed" && (
           <div style={{ position: "absolute", inset: 0, zIndex: 200 }}>

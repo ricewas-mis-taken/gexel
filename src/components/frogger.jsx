@@ -717,14 +717,6 @@ function FroggerBoard({ onFinish }) {
           to   { transform: scale(1.06); opacity: 1;   }
         }
 
-        .debug-warp-btn {
-          position: absolute; top: 42px; left: 8px; z-index: 10000;
-          background: #000; border: 2px solid #9933ff; color: #9933ff;
-          font-family: 'PokemonClassic', monospace;
-          font-size: 9px; padding: 4px 8px; cursor: pointer; letter-spacing: 1px;
-          box-shadow: 0 0 8px rgba(153,51,255,0.4);
-        }
-        .debug-warp-btn:hover { background: rgba(153,51,255,0.15); }
         .msg {
           position: absolute; bottom: 2px; left: 0; width: 100%;
           text-align: center; font-size: 10px; color: #ff5555;
@@ -894,14 +886,6 @@ function FroggerBoard({ onFinish }) {
         </div>
       </div>
 
-      {gameState === "playing" && (
-        <button
-          className="debug-warp-btn"
-          onClick={() => landOnLilypad((LILYPAD_COL_MIN + LILYPAD_COL_MAX) / 2)}
-        >
-          🐸 WARP
-        </button>
-      )}
 
       {gameState === "timeout" && (
         <div style={{ position: "absolute", inset: 0, zIndex: 200 }}>

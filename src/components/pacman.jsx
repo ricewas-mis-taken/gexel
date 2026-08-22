@@ -750,6 +750,7 @@ export default function Pacman({ onFinish }) {
       e.ghosts.forEach(g => moveGhost(g, e));
 
       e.ghosts.forEach(g => {
+        if (!p.alive) return;
         if (!g.free && !g.eaten) return;
         if (Math.hypot(p.x - g.x, p.y - g.y) < 13) {
           if (scared && !g.eaten) {
