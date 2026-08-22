@@ -15,6 +15,7 @@ import BossFight from "./components/bossfight";
 import CompeteNameEntry from "./components/transitions/CompeteNameEntry";
 
 import { useCoins, GAME_ORDER } from "./components/CoinContext";
+import { preloadGameAssets } from "./lib/preload";
 
 import PacmanIntro from "./components/transitions/pacmanintro";
 import PacmanInstructions from "./components/transitions/pacmaninstructions";
@@ -59,6 +60,14 @@ export default function App() {
     if (!competing) startCompete();
     else if (awaitingResume) resumeCompete();
   }, [phase, competing, awaitingResume, startCompete, resumeCompete]);
+
+  // Start warming the browser's cache with every game asset as soon as the
+  // player enters the tutorial flow (or resumes straight into the hub), so
+  // by the time an actual minigame mounts its images/audio are already
+  // loaded instead of each game paying its own first-load cost.
+  useEffect(() => {
+    if (phase === "intro" || phase === "resume") preloadGameAssets();
+  }, [phase]);
 
   // Fires once the boss-fight credits (BossEnding) finish scrolling.
   const handleCreditsFinished = () => {
