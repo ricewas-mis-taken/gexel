@@ -283,7 +283,7 @@ function neighborTileOpen(map, col, row, dc, dr, eaten) {
 
 export default function Pacman({ onFinish }) {
   const canvasRef = useRef(null);
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const [uiState, setUiState] = useState("playing");
   const stateRef = useRef("playing");
   const [topCoins, setTopCoins] = useState(0);
@@ -658,7 +658,7 @@ export default function Pacman({ onFinish }) {
         const t = 1 - (e.deathTimer / totalFrames);
         if (e.deathTimer === 0) {
           if (e.lives <= 0) {
-            stateRef.current = "lost"; setUiState("lost"); discardSession();
+            stateRef.current = "lost"; setUiState("lost"); discardSession(); recordDeath("pacman");
             stopAllSounds();
           }
           else resetEntities(e);
@@ -745,6 +745,7 @@ export default function Pacman({ onFinish }) {
       e.ghosts.forEach(g => moveGhost(g, e));
 
       e.ghosts.forEach(g => {
+        if (!p.alive) return;
         if (!g.free && !g.eaten) return;
         if (Math.hypot(p.x - g.x, p.y - g.y) < 13) {
           if (scared && !g.eaten) {

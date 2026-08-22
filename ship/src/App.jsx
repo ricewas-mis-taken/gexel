@@ -12,14 +12,15 @@ import Galaga from "./components/Galaga";
 import Roadgame from "./components/roadgame";
 import Tetris from "./components/tetris";
 import BossFight from "./components/bossfight";
+import CompeteNameEntry from "./components/transitions/CompeteNameEntry";
 
 import { useCoins } from "./components/CoinContext";
 
-import PacmanIntro from "./components/transitions/PacmanIntro";
-import PacmanInstructions from "./components/transitions/PacmanInstructions";
+import PacmanIntro from "./components/transitions/pacmanintro";
+import PacmanInstructions from "./components/transitions/pacmaninstructions";
 import PacmanEnding from "./components/transitions/pacmanending";
-import GalagaIntro from "./components/transitions/GalagaIntro";
-import GalagaInstructions from "./components/transitions/GalagaInstruction";
+import GalagaIntro from "./components/transitions/galagaintro";
+import GalagaInstructions from "./components/transitions/galagainstruction";
 import FroggerIntro from "./components/transitions/froggerintro";
 import FroggerInstructions from "./components/transitions/froggerinstructions";
 import FroggerEnd from "./components/transitions/froggerend";
@@ -41,10 +42,22 @@ const GAME_FLOW = {
 
 export default function App() {
   const [fadeIn, setFadeIn] = useState(false);
-  const { markGameComplete, hasProgress, resetProgress } = useCoins();
+  const { markGameComplete, hasProgress, resetProgress, competing, startCompete, finishCompete } = useCoins();
   const [phase, setPhase] = useState(() => hasProgress ? "resume" : "spreadsheet");
   const [zoomTarget, setZoomTarget] = useState("mainGame");
   const typedRef = useRef("");
+
+  // Every playthrough is timed — start the clock as soon as the player
+  // reaches the hub, whether this is a fresh run or a resumed one.
+  useEffect(() => {
+    if (phase === "mainGame" && !competing) startCompete();
+  }, [phase, competing, startCompete]);
+
+  // Fires once the boss-fight credits (BossEnding) finish scrolling.
+  const handleCreditsFinished = () => {
+    finishCompete();
+    setPhase("competeName");
+  };
 
   const finishGame = (gameKey) => {
     markGameComplete(gameKey);
@@ -136,9 +149,15 @@ export default function App() {
     if (phase === "bossfight") {
       return (
         <BossFight
-          onWin={() => setPhase("mainGame")}
+          onWin={handleCreditsFinished}
           onLose={() => setPhase("mainGame")}
         />
+      );
+    }
+
+    if (phase === "competeName") {
+      return (
+        <CompeteNameEntry onDone={() => { resetProgress(); setPhase("spreadsheet"); }} />
       );
     }
 

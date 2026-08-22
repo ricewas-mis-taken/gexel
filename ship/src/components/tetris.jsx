@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 import TetrisEnding from "./transitions/TetrisEnding";
 import { useCoins } from "./CoinContext";
 import { fadeOutAudio } from "./audioFade";
@@ -217,7 +217,7 @@ function MatrixRain() {
 }
 
 export default function Tetris({ onFinish }) {
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const canvasRef = useRef(null);
   const nextCanvasRef = useRef(null);
   const overlayCanvasRef = useRef(null);
@@ -248,6 +248,7 @@ export default function Tetris({ onFinish }) {
   const biteRef = useRef(null);
   const yayRef = useRef(null);
   const deathMusicRef = useRef(null);
+  const winFinishTimeoutRef = useRef(null);
   const [appleIndex, setAppleIndexState] = useState(1);
   const [nextType, setNextType] = useState(nextTypeRef.current);
   const [gameOver, setGameOver] = useState(false);
@@ -378,6 +379,7 @@ export default function Tetris({ onFinish }) {
       gameOverRef.current = true;
       setGameOver(true);
       discardSession();
+      recordDeath("tetris");
       return;
     }
     pieceRef.current = piece;
@@ -498,6 +500,10 @@ export default function Tetris({ onFinish }) {
   }
 
   function restart() {
+    if (winFinishTimeoutRef.current) {
+      clearTimeout(winFinishTimeoutRef.current);
+      winFinishTimeoutRef.current = null;
+    }
     boardRef.current = emptyBoard();
     wormRef.current = null;
     wormActiveRef.current = false;
@@ -580,7 +586,8 @@ export default function Tetris({ onFinish }) {
                 deathMusic.volume = 0.8;
                 deathMusicRef.current = deathMusic;
                 deathMusic.play().catch(() => {});
-                setTimeout(() => {
+                winFinishTimeoutRef.current = setTimeout(() => {
+                  winFinishTimeoutRef.current = null;
                   if (deathMusicRef.current === deathMusic) {
                     deathMusic.pause();
                     deathMusicRef.current = null;
@@ -594,7 +601,7 @@ export default function Tetris({ onFinish }) {
                 setAppleFlash(true);
                 playBite();
                 setTimeout(() => setAppleFlash(false), 350);
-                spawnPiece();
+                checkLines();
               }
             }
           }
@@ -747,7 +754,6 @@ export default function Tetris({ onFinish }) {
             position: "absolute", inset: 0, width: "100%", height: "100%",
             pointerEvents: "none", zIndex: 50,
           }} />
-
 
           <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
             {tetrisLogo && <img src={tetrisLogo} alt="Tetris" style={{ width: LOGO_WIDTH, height: "auto" }} />}

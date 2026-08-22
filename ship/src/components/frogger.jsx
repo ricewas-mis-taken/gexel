@@ -189,7 +189,7 @@ function FroggerBoard({ onFinish }) {
   const [delivered, setDelivered] = useState([]);
   const [gameState, setGameState] = useState("playing");
 
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const [coinPop, setCoinPop]           = useState(null);
 
   const [message, setMessage]      = useState("");
@@ -291,7 +291,7 @@ function FroggerBoard({ onFinish }) {
         if (next <= WARN_2 && next > WARN_2 - 2 && !warnedRef.current.w10) {
           warnedRef.current.w10 = true; triggerWarn("10");
         }
-        if (next <= 0) { clearInterval(timerRef.current); setGameState("timeout"); return 0; }
+        if (next <= 0) { clearInterval(timerRef.current); setGameState("timeout"); recordDeath("frogger"); return 0; }
         return next;
       });
     }, 1000);
@@ -320,7 +320,8 @@ function FroggerBoard({ onFinish }) {
       playSfx(deathEnvironment === "river" ? "drown" : "landdie");
     }, HOP_MS);
     setGameState("dead");
-  }, []);
+    recordDeath("frogger");
+  }, [recordDeath]);
 
   const landOnLilypad = useCallback((col) => {
     frogRef.current = { ...frogRef.current, col, row: 0, isHomed: true };
@@ -884,6 +885,7 @@ function FroggerBoard({ onFinish }) {
           ))}
         </div>
       </div>
+
 
       {gameState === "timeout" && (
         <div style={{ position: "absolute", inset: 0, zIndex: 200 }}>

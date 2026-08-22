@@ -175,7 +175,7 @@ const TAUNT_LINE = "Haha, you are weak.";
 const MONOLOGUE = "It…it…it.. Can't be! How did you get the RAM stick? And working!!!! By what means did you defeat Kyran's race time? How did you open the Thousand-Year apple? What sorcery did you proclaim to bewitch the King Frog to hand over his only Lily Flower? And the…the…the…BUTTERFLIES!!!!";
 
 export default function BossFight({ onWin, onLose }) {
-  const { coins } = useCoins();
+  const { coins, recordDeath } = useCoins();
   const keys = useRef({});
 
   const ramBonus = Math.min(coins || 0, RAM_MAX);
@@ -352,97 +352,145 @@ export default function BossFight({ onWin, onLose }) {
     return () => clearInterval(loop);
   }, [phase, playerAction.lock, dialogue]);
 
-  useEffect(() => {
-    if (!playerAction.lock) return;
-    if (playerAction.type === "gun" || playerAction.type === "fire") return;
-    const list = ANIM[playerAction.type] || ANIM.idle;
-    const timer = setTimeout(() => {
-      const next = playerAction.frame + 1;
-      if (next >= list.length) {
-        if ((playerAction.type === "punch" || playerAction.type === "kick") && Math.abs((playerXRef.current + CHAR_W) - enemyXRef.current) < HIT_RANGE) {
-          const dmg = playerAction.type === "punch" ? PUNCH_DMG : KICK_DMG;
-          if (enemyBlockingRef.current) {
-            playSnd(blockSfx);
-          } else {
-            enemyLandedHits.current += 1;
-            if (enemyLandedHits.current >= ENEMY_LEARN_BLOCK_HITS) {
-              enemyLearnedBlock.current = true;
-            }
-          }
-          setEnemyHP(hp => Math.max(1, hp - (enemyBlockingRef.current ? BLOCK_CHIP_DMG : dmg)));
-          setEnemyX(x => Math.min(FIGHT_W - CHAR_W - 20, x + PLAYER_HIT_KNOCKBACK));
-        }
-        setPlayerAction({ type: "idle", frame: 0, lock: false });
-      } else {
-        setPlayerAction(a => ({ ...a, frame: next }));
-      }
-    }, 110);
-    return () => clearTimeout(timer);
-  }, [playerAction]);
+  // Attack-move type captured at the moment a hit actually lands, so the
+  // opponent's headhit/abhit reaction effect (keyed off the HP change) reads
+  // the real move instead of racing the same-tick reset back to "idle".
+  const lastPlayerAttackTypeRef = useRef("punch");
+  const lastEnemyAttackTypeRef = useRef("punch");
 
-  useEffect(() => {
-    if (!enemyAction.lock) return;
-    if (enemyAction.type === "kill" || enemyAction.type === "die") return;
-    const list = ENEMY_ANIM[enemyAction.type] || ENEMY_ANIM.idle;
-    const timer = setTimeout(() => {
-      const next = enemyAction.frame + 1;
-      if (next >= list.length) {
-        if ((enemyAction.type === "punch" || enemyAction.type === "kick") && Math.abs((enemyXRef.current) - (playerXRef.current + CHAR_W)) < HIT_RANGE) {
-          const dmg = (enemyAction.type === "punch" ? PUNCH_DMG : KICK_DMG) * enemyDmgMult.current;
-          if (playerBlockingRef.current) {
-            playSnd(blockSfx);
-            if (ramHPRef.current > 0) {
-              setRamHP(r => Math.max(0, r - BLOCK_CHIP_DMG));
-            } else {
-              setPlayerHP(hp => Math.max(0, hp - BLOCK_CHIP_DMG));
-            }
-            playerBlockStreak.current += 1;
-            if (playerBlockStreak.current > BLOCK_STREAK_LIMIT) {
-              playerBlockStreak.current = 0;
-              setPlayerBlockBroken(true);
-              if (blockBreakTimer.current) clearTimeout(blockBreakTimer.current);
-              blockBreakTimer.current = setTimeout(() => { blockBreakTimer.current = null; setPlayerBlockBroken(false); }, BLOCK_BREAK_STUN_MS);
-            }
-            if (comboActive.current) {
-              breakCombo();
-              setEnemyStunned(true);
-              if (enemyStunTimer.current) clearTimeout(enemyStunTimer.current);
-              enemyStunTimer.current = setTimeout(() => setEnemyStunned(false), ENEMY_STUN_MS);
-            }
-          } else {
-            resetBlockStreak();
-            const floor = bossHealedOnce.current ? 1 : 0;
-            if (ramHPRef.current > 0) {
-              setRamHP(r => Math.max(0, r - dmg));
-            } else {
-              setPlayerHP(hp => Math.max(floor, hp - dmg));
-            }
-            if (!comboActive.current) {
-              comboActive.current = true;
-              comboHits.current = 1;
-              setPlayerStunned(true);
-            } else {
-              comboHits.current += 1;
-            }
-            if (comboHits.current < MAX_COMBO_HITS) {
-              comboTimer.current = setTimeout(() => {
-                if (!comboActive.current || enemyStunnedRef.current) return;
-                const nextType = Math.random() < 0.5 ? "kick" : "punch";
-                playSnd(nextType === "kick" ? kickSfx : punchSfx);
-                setEnemyAction({ type: nextType, frame: 0, lock: true });
-              }, COMBO_GAP_MS);
-            } else {
-              breakCombo();
-            }
+  const advancePlayerFrame = () => {
+    const pa = playerActionRef.current;
+    const list = ANIM[pa.type] || ANIM.idle;
+    const next = pa.frame + 1;
+    if (next >= list.length) {
+      if ((pa.type === "punch" || pa.type === "kick") && Math.abs((playerXRef.current + CHAR_W) - enemyXRef.current) < HIT_RANGE) {
+        lastPlayerAttackTypeRef.current = pa.type;
+        const dmg = pa.type === "punch" ? PUNCH_DMG : KICK_DMG;
+        if (enemyBlockingRef.current) {
+          playSnd(blockSfx);
+        } else {
+          enemyLandedHits.current += 1;
+          if (enemyLandedHits.current >= ENEMY_LEARN_BLOCK_HITS) {
+            enemyLearnedBlock.current = true;
           }
         }
-        setEnemyAction({ type: "idle", frame: 0, lock: false });
-      } else {
-        setEnemyAction(a => ({ ...a, frame: next }));
+        setEnemyHP(hp => Math.max(1, hp - (enemyBlockingRef.current ? BLOCK_CHIP_DMG : dmg)));
+        setEnemyX(x => Math.min(FIGHT_W - CHAR_W - 20, x + PLAYER_HIT_KNOCKBACK));
       }
-    }, ENEMY_ANIM_MS);
-    return () => clearTimeout(timer);
-  }, [enemyAction]);
+      setPlayerAction({ type: "idle", frame: 0, lock: false });
+    } else {
+      setPlayerAction(a => ({ ...a, frame: next }));
+    }
+  };
+
+  const advanceEnemyFrame = () => {
+    const ea = enemyActionRef.current;
+    const list = ENEMY_ANIM[ea.type] || ENEMY_ANIM.idle;
+    const next = ea.frame + 1;
+    if (next >= list.length) {
+      if ((ea.type === "punch" || ea.type === "kick") && Math.abs((enemyXRef.current) - (playerXRef.current + CHAR_W)) < HIT_RANGE) {
+        lastEnemyAttackTypeRef.current = ea.type;
+        const dmg = (ea.type === "punch" ? PUNCH_DMG : KICK_DMG) * enemyDmgMult.current;
+        if (playerBlockingRef.current) {
+          playSnd(blockSfx);
+          if (ramHPRef.current > 0) {
+            setRamHP(r => Math.max(0, r - BLOCK_CHIP_DMG));
+          } else {
+            setPlayerHP(hp => Math.max(0, hp - BLOCK_CHIP_DMG));
+          }
+          playerBlockStreak.current += 1;
+          if (playerBlockStreak.current > BLOCK_STREAK_LIMIT) {
+            playerBlockStreak.current = 0;
+            setPlayerBlockBroken(true);
+            if (blockBreakTimer.current) clearTimeout(blockBreakTimer.current);
+            blockBreakTimer.current = setTimeout(() => { blockBreakTimer.current = null; setPlayerBlockBroken(false); }, BLOCK_BREAK_STUN_MS);
+          }
+          if (comboActive.current) {
+            breakCombo();
+            setEnemyStunned(true);
+            if (enemyStunTimer.current) clearTimeout(enemyStunTimer.current);
+            enemyStunTimer.current = setTimeout(() => setEnemyStunned(false), ENEMY_STUN_MS);
+          }
+        } else {
+          resetBlockStreak();
+          const floor = bossHealedOnce.current ? 1 : 0;
+          if (ramHPRef.current > 0) {
+            setRamHP(r => Math.max(0, r - dmg));
+          } else {
+            setPlayerHP(hp => Math.max(floor, hp - dmg));
+          }
+          if (!comboActive.current) {
+            comboActive.current = true;
+            comboHits.current = 1;
+            setPlayerStunned(true);
+          } else {
+            comboHits.current += 1;
+          }
+          if (comboHits.current < MAX_COMBO_HITS) {
+            comboTimer.current = setTimeout(() => {
+              if (!comboActive.current || enemyStunnedRef.current) return;
+              const nextType = Math.random() < 0.5 ? "kick" : "punch";
+              playSnd(nextType === "kick" ? kickSfx : punchSfx);
+              setEnemyAction({ type: nextType, frame: 0, lock: true });
+            }, COMBO_GAP_MS);
+          } else {
+            breakCombo();
+          }
+        }
+      }
+      setEnemyAction({ type: "idle", frame: 0, lock: false });
+    } else {
+      setEnemyAction(a => ({ ...a, frame: next }));
+    }
+  };
+
+  // A single requestAnimationFrame loop drives both characters' attack/hit
+  // frame pacing via accumulated delta time. This replaces two independent
+  // chained setTimeout loops: those drift under any main-thread load (GC
+  // pauses, other timers firing) since each redraw is scheduled relative to
+  // when the *previous* one happened to fire, not to a fixed clock — the
+  // visible symptom is animations that occasionally stutter or run ahead of
+  // each other. rAF ties frame advances to the browser's actual paint cycle
+  // and self-corrects using real elapsed time, so pacing stays smooth even
+  // when a frame or two gets delayed, and it naturally pauses while the tab
+  // is hidden instead of burning through a backlog of stale timeouts.
+  useEffect(() => {
+    let raf;
+    let last = performance.now();
+    let playerElapsed = 0;
+    let enemyElapsed = 0;
+    const tick = (now) => {
+      let dt = now - last;
+      last = now;
+      if (dt > 250) dt = 250; // clamp huge gaps (e.g. tab was backgrounded)
+
+      const pa = playerActionRef.current;
+      if (pa.lock && pa.type !== "gun" && pa.type !== "fire") {
+        playerElapsed += dt;
+        if (playerElapsed >= 110) {
+          playerElapsed = 0;
+          advancePlayerFrame();
+        }
+      } else {
+        playerElapsed = 0;
+      }
+
+      const ea = enemyActionRef.current;
+      if (ea.lock && ea.type !== "kill" && ea.type !== "die") {
+        enemyElapsed += dt;
+        if (enemyElapsed >= ENEMY_ANIM_MS) {
+          enemyElapsed = 0;
+          advanceEnemyFrame();
+        }
+      } else {
+        enemyElapsed = 0;
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     if (phase !== "fight") return;
@@ -500,7 +548,7 @@ export default function BossFight({ onWin, onLose }) {
   useEffect(() => {
     if (phase === "fight" && enemyHP < prevEnemyHP.current) {
       if (comboActive.current) breakCombo();
-      setEnemyAction({ type: playerAction.type === "kick" ? "headhit" : "abhit", frame: 0, lock: true });
+      setEnemyAction({ type: lastPlayerAttackTypeRef.current === "kick" ? "headhit" : "abhit", frame: 0, lock: true });
       recentlyHitRef.current = true;
       if (recentlyHitTimer.current) clearTimeout(recentlyHitTimer.current);
       recentlyHitTimer.current = setTimeout(() => { recentlyHitRef.current = false; }, RECENTLY_HIT_AGGRO_MS);
@@ -509,7 +557,7 @@ export default function BossFight({ onWin, onLose }) {
   }, [enemyHP, phase]);
   useEffect(() => {
     if (phase === "fight" && playerHP < prevPlayerHP.current) {
-      setPlayerAction({ type: enemyAction.type === "kick" ? "headhit" : "abhit", frame: 0, lock: true });
+      setPlayerAction({ type: lastEnemyAttackTypeRef.current === "kick" ? "headhit" : "abhit", frame: 0, lock: true });
     }
     prevPlayerHP.current = playerHP;
   }, [playerHP, phase]);
@@ -583,6 +631,7 @@ export default function BossFight({ onWin, onLose }) {
   useEffect(() => {
     if (phase === "fight" && playerHP <= 0 && ramHP <= 0 && !bossHealedOnce.current) {
       setPhase("lost");
+      recordDeath("bossfight");
     }
   }, [playerHP, ramHP, phase]);
 
@@ -932,6 +981,7 @@ export default function BossFight({ onWin, onLose }) {
             }}>NEXT ▼</button>
           </div>
         )}
+
 
         <div style={{
           position: "absolute", inset: 0, background: "#000", zIndex: 999, pointerEvents: "none",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 
 import jailImg from "../assets/jail.png";
 import jail1Img from "../assets/jail1.png";
@@ -82,7 +82,7 @@ function stopAllSfx(trackerRef) {
 
 export default function Galaga({ onNext }) {
   const canvasRef = useRef(null);
-  const { addSessionCoins, commitSession, discardSession } = useCoins();
+  const { addSessionCoins, commitSession, discardSession, recordDeath } = useCoins();
   const [jailBroken, setJailBroken] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [lives, setLives] = useState(3);
@@ -372,6 +372,7 @@ export default function Galaga({ onNext }) {
             st.gameOver = true;
             st.paused = true;
             discardSession();
+            recordDeath("galaga");
             if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
             if (deathMusicRef.current) { deathMusicRef.current.pause(); deathMusicRef.current = null; }
             stopAllSfx(sfxRef);
@@ -439,6 +440,11 @@ export default function Galaga({ onNext }) {
 
       if (!st.paused) {
         st.groupXOffset += st.groupDir * 0.5;
+        // groupYOffset is intentionally uncapped: it's the level's soft time
+        // limit. Every time the formation's horizontal sweep hits an edge,
+        // the back rows creep 10px closer to the player. A player who just
+        // dodges forever without clearing the jail/formation eventually gets
+        // forced into a hit — this is by design, not a bug. Do not clamp it.
         if (st.groupXOffset > 160) {
           st.groupXOffset = 160;
           st.groupDir=-1;
@@ -693,35 +699,9 @@ export default function Galaga({ onNext }) {
     setRestartKey(k => k + 1);
   };
 
-  const handleDevHit = () => {
-    if (!stateRef.current || stateRef.current.jailBroken || stateRef.current.jailBreaking || stateRef.current.gameOver) return;
-
-    const st = stateRef.current;
-    st.jailHits += 10;
-    st.jailShudder=12;
-    playSnd(safehitSnd, 0.4, sfxRef);
-    if (st.jailHits >= 50 && !st.jailBreaking && !st.jailBroken)
-    {
-      startBreakRef.current?.();
-    }
-  };
-
   return (
     <AppShell>
       <div style={{ flex: 1, position: "relative", background: "#000" }}>
-
-        <button
-          onClick={handleDevHit}
-          style={{
-            position: "absolute", top: 16, left: 16, zIndex: 30,
-            background: "rgba(0, 0, 0, 0.6)", color: "#ff00ff",
-            border: "2px solid #ff00ff", borderRadius: 4,
-            padding: "6px 12px", fontFamily: "monospace",
-            fontSize: "12px", cursor: "pointer", fontWeight: "bold"
-          }}
-        >
-          DEV: +10 HITS
-        </button>
 
         {!imagesLoaded ? (
           <div style={{ color: "#fff", fontFamily: "monospace", padding: 20 }}>Loading Assets...</div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import CoinCounter from "./CoinCounter";
+import { useCoins } from "./CoinContext";
 export const selectStyle = { fontSize: 13, padding: "2px 4px", border: "1px solid #555", borderRadius: 2, width: 130, background: "#3a3a3a", color: "#e0e0e0" };
 export const ribbonBtn = { fontSize: 13, padding: "3px 10px", cursor: "pointer", border: "1px solid #555", borderRadius: 2, color: "#e0e0e0" };
 export const cornerCell = { background: "#2a2a2a", border: "1px solid #444", width: 40, minWidth: 40 };
@@ -8,9 +9,18 @@ export const headerCell = {
 };
 export const rowHeader = { background: "#2a2a2a", border: "1px solid #444", textAlign: "center", width: 40, minWidth: 40, fontSize: 12, color: "#aaa" };
 
+function formatElapsed(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function AppShell({ children, rightSlot, showCoins = true })
 {
   const shellRef = useRef(null);
+  const { competing, competeStartedAt, getCompeteElapsedMs } = useCoins();
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
   const [scale, setScale] = useState(() => {
     if (!document.fullscreenElement) return 1;
@@ -50,6 +60,14 @@ export default function AppShell({ children, rightSlot, showCoins = true })
     };
   }, [isFullscreen]);
 
+  useEffect(() => {
+    if (!competing || !competeStartedAt) return;
+    const tick = () => setElapsedMs(getCompeteElapsedMs());
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [competing, competeStartedAt, getCompeteElapsedMs]);
+
   const toggleFullscreen = () => {
     if (document.fullscreenElement)
     {
@@ -62,6 +80,16 @@ export default function AppShell({ children, rightSlot, showCoins = true })
   return (
     <div ref={shellRef} style={{ background: "#000", position: isFullscreen ? "fixed" : "static", inset: isFullscreen ? 0 : "auto", width: isFullscreen ? "100vw" : "auto", height: isFullscreen ? "100vh" : "100vh", minHeight: isFullscreen ? "auto" : "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
       <div style={{ width: 900, height: 600, position: "relative", border: "2px solid #2ea84a", borderRadius: 6, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 40px #2ea84a33", transform: `scale(${scale})`, transformOrigin: "center center", transition: "transform 0.15s ease", flexShrink: 0 }}>
+        {competing && (
+          <div style={{
+            position: "absolute", top: 2, left: "50%", transform: "translateX(-50%)", zIndex: 70,
+            background: "#000", color: "#fff", border: "1px solid #2ea84a", borderRadius: 3,
+            padding: "1px 8px", fontFamily: "'PokemonClassic', monospace", fontSize: 11,
+            letterSpacing: 1, pointerEvents: "none", display: "flex", alignItems: "center", gap: 4,
+          }}>
+            <span>⏱</span>{formatElapsed(elapsedMs)}
+          </div>
+        )}
         <div style={{ background: "#2ea84a", color: "white", padding: "6px 12px", fontSize: 14, display: "flex", alignItems: "center", gap: 16, flexShrink: 0, borderBottom: "2px solid #1a5c37" }}>
           <span style={{fontWeight:"bold"}}>Gexel</span>
           {["File","Home","Insert","Page Layout","Formulas","Data","Review","View"].map(m => (
