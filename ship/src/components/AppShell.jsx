@@ -19,7 +19,8 @@ function formatElapsed(ms) {
 export default function AppShell({ children, rightSlot, showCoins = true })
 {
   const shellRef = useRef(null);
-  const { competing, competeStartedAt, getCompeteElapsedMs } = useCoins();
+  const { competing, awaitingResume, competeStartedAt, getCompeteElapsedMs } = useCoins();
+  const showTimer = competing && !awaitingResume;
   const [elapsedMs, setElapsedMs] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
   const [scale, setScale] = useState(() => {
@@ -61,12 +62,12 @@ export default function AppShell({ children, rightSlot, showCoins = true })
   }, [isFullscreen]);
 
   useEffect(() => {
-    if (!competing || !competeStartedAt) return;
+    if (!showTimer || !competeStartedAt) return;
     const tick = () => setElapsedMs(getCompeteElapsedMs());
     tick();
     const id = setInterval(tick, 250);
     return () => clearInterval(id);
-  }, [competing, competeStartedAt, getCompeteElapsedMs]);
+  }, [showTimer, competeStartedAt, getCompeteElapsedMs]);
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement)
@@ -80,26 +81,26 @@ export default function AppShell({ children, rightSlot, showCoins = true })
   return (
     <div ref={shellRef} style={{ background: "#000", position: isFullscreen ? "fixed" : "static", inset: isFullscreen ? 0 : "auto", width: isFullscreen ? "100vw" : "auto", height: isFullscreen ? "100vh" : "100vh", minHeight: isFullscreen ? "auto" : "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
       <div style={{ width: 900, height: 600, position: "relative", border: "2px solid #2ea84a", borderRadius: 6, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 40px #2ea84a33", transform: `scale(${scale})`, transformOrigin: "center center", transition: "transform 0.15s ease", flexShrink: 0 }}>
-        {competing && (
-          <div style={{
-            position: "absolute", top: 2, left: "50%", transform: "translateX(-50%)", zIndex: 70,
-            background: "#000", color: "#fff", border: "1px solid #2ea84a", borderRadius: 3,
-            padding: "1px 8px", fontFamily: "'PokemonClassic', monospace", fontSize: 11,
-            letterSpacing: 1, pointerEvents: "none", display: "flex", alignItems: "center", gap: 4,
-          }}>
-            <span>⏱</span>{formatElapsed(elapsedMs)}
-          </div>
-        )}
         <div style={{ background: "#2ea84a", color: "white", padding: "6px 12px", fontSize: 14, display: "flex", alignItems: "center", gap: 16, flexShrink: 0, borderBottom: "2px solid #1a5c37" }}>
           <span style={{fontWeight:"bold"}}>Gexel</span>
           {["File","Home","Insert","Page Layout","Formulas","Data","Review","View"].map(m => (
             <span key={m} style={{ opacity: 0.85 }}>{m}</span>
           ))}
           {rightSlot && <span style={{ marginLeft: "auto" }}>{rightSlot}</span>}
+          {showTimer && (
+            <span style={{
+              marginLeft: rightSlot ? 8 : "auto",
+              display: "flex", alignItems: "center", gap: 4,
+              fontFamily: "'PokemonClassic', monospace", fontSize: 11, letterSpacing: 1,
+              pointerEvents: "none",
+            }}>
+              <span>⏱</span>{formatElapsed(elapsedMs)}
+            </span>
+          )}
           <span
             title={isFullscreen ? "Exit full screen" : "Full screen"}
             onClick={toggleFullscreen}
-            style={{ cursor: "pointer", fontSize: 16, marginLeft: rightSlot ? 8 : "auto" }}
+            style={{ cursor: "pointer", fontSize: 16, marginLeft: (rightSlot || showTimer) ? 8 : "auto" }}
           >
             {isFullscreen ? "⊡" : "⛶"}
           </span>
