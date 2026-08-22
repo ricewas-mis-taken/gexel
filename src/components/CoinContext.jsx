@@ -18,7 +18,12 @@ export function CoinProvider({ children })
 
   const [progress, setProgress] = useState(() => {
       const saved = localStorage.getItem(PROGRESS_KEY);
-      return saved ? JSON.parse(saved) : {};
+      if (!saved) return {};
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return {};
+      }
   });
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(NAME_KEY) || "");
