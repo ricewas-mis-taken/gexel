@@ -45,22 +45,21 @@ const PHASES = ["spreadsheet", "mainGame", ...GAME_ORDER, "bossfight"];
 export default function App() {
   const [fadeIn, setFadeIn] = useState(false);
   const [debugOpen,setDebugOpen] = useState(false);
-  const { coins, markGameComplete, hasProgress, resetProgress, addCoins, markBeaten, competing, finishCompete } = useCoins();
+  const { coins, markGameComplete, hasProgress, resetProgress, addCoins, competing, startCompete, finishCompete } = useCoins();
   const [phase, setPhase] = useState(() => hasProgress ? "resume" : "spreadsheet");
   const [zoomTarget, setZoomTarget] = useState("mainGame");
   const typedRef = useRef("");
 
+  // Every playthrough is timed — start the clock as soon as the player
+  // reaches the hub, whether this is a fresh run or a resumed one.
+  useEffect(() => {
+    if (phase === "mainGame" && !competing) startCompete();
+  }, [phase, competing, startCompete]);
+
   // Fires once the boss-fight credits (BossEnding) finish scrolling.
   const handleCreditsFinished = () => {
-    markBeaten();
-    const wasCompeting = competing;
     finishCompete();
-    if (wasCompeting) {
-      setPhase("competeName");
-    } else {
-      resetProgress();
-      setPhase("spreadsheet");
-    }
+    setPhase("competeName");
   };
 
   const finishGame = (gameKey) => {
