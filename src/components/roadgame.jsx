@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 import car2Img from "../assets/speedrace/car2.png";
 import roadblock1Img from "../assets/speedrace/roadblock1.png";
 import roadblock2Img from "../assets/speedrace/roadblock2.png";

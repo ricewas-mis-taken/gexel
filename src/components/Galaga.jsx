@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import { useCoins } from "./CoinContext";
-import Loseg from "./transitions/Loseg";
+import Loseg from "./transitions/loseg";
 
 import jailImg from "../assets/jail.png";
 import jail1Img from "../assets/jail1.png";
