@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import AppShell from "../AppShell";
 import { PixelWizard } from "../OrientationScreen";
 import { fadeOutAudio } from "../audioFade";
@@ -33,8 +33,8 @@ const CREDIT_LINES = [
   "GEXEL",
 ];
 
-const SCROLL_DURATION_S = 32;
-const FADE_MS = 2500;
+const SCROLL_SPEED_PX_PER_S = 60;
+const FADE_MS = 1000;
 
 export default function BossEnding({ onDone }) {
   const { finishCompete } = useCoins();
@@ -42,6 +42,24 @@ export default function BossEnding({ onDone }) {
     const [creditsDone, setCreditsDone] = useState(false);
   const audioRef = useRef(null);
   const spotRef=useRef(null);
+  const creditsOuterRef = useRef(null);
+  const creditsContentRef = useRef(null);
+  // Computed once the credits content is measured, so the scroll distance
+  // (and therefore duration) always matches the actual text instead of a
+  // fixed guess — previously a flat -2400px scrolled for 32s regardless of
+  // how tall the credits actually were, so once "GEXEL" scrolled off the
+  // top the animation kept running over empty space for a long stretch
+  // before handleScrollEnd ever fired.
+  const [scrollConfig, setScrollConfig] = useState(null);
+
+  useLayoutEffect(() => {
+    if (stage !== "credits") return;
+    const outer = creditsOuterRef.current;
+    const content = creditsContentRef.current;
+    if (!outer || !content) return;
+    const distance = outer.clientHeight + content.offsetHeight;
+    setScrollConfig({ distance, duration: distance / SCROLL_SPEED_PX_PER_S });
+  }, [stage]);
 
   useEffect(() => {
     if (stage !== "wizard") return;
@@ -87,7 +105,7 @@ export default function BossEnding({ onDone }) {
       <style>{`
         @keyframes creditsScroll {
           from { transform: translateY(0); }
-          to { transform: translateY(-2400px); }
+          to { transform: translateY(var(--credits-scroll-end, 0px)); }
         }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
       `}</style>
@@ -134,16 +152,20 @@ export default function BossEnding({ onDone }) {
         )}
 
         {stage === "credits" && (
-          <div style={{
+          <div ref={creditsOuterRef} style={{
             position: "absolute", inset: 0,
             opacity: creditsDone ? 0 : 1,
             transition: `opacity ${FADE_MS}ms ease`,
           }}>
             <div
-              style={{ position: "absolute", inset: 0, animation: `creditsScroll ${SCROLL_DURATION_S}s linear forwards` }}
+              style={{
+                position: "absolute", inset: 0,
+                animation: scrollConfig ? `creditsScroll ${scrollConfig.duration}s linear forwards` : "none",
+                "--credits-scroll-end": scrollConfig ? `-${scrollConfig.distance}px` : "0px",
+              }}
               onAnimationEnd={handleScrollEnd}
             >
-              <div style={{
+              <div ref={creditsContentRef} style={{
                 position: "absolute", top: "100%", left: 0, right: 0,
                 display: "flex", flexDirection: "column", alignItems: "center",
                 paddingTop: 40,
