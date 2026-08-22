@@ -248,6 +248,7 @@ export default function Tetris({ onFinish }) {
   const biteRef = useRef(null);
   const yayRef = useRef(null);
   const deathMusicRef = useRef(null);
+  const winFinishTimeoutRef = useRef(null);
   const [appleIndex, setAppleIndexState] = useState(1);
   const [nextType, setNextType] = useState(nextTypeRef.current);
   const [gameOver, setGameOver] = useState(false);
@@ -507,6 +508,10 @@ export default function Tetris({ onFinish }) {
   }
 
   function restart() {
+    if (winFinishTimeoutRef.current) {
+      clearTimeout(winFinishTimeoutRef.current);
+      winFinishTimeoutRef.current = null;
+    }
     boardRef.current = emptyBoard();
     wormRef.current = null;
     wormActiveRef.current = false;
@@ -589,7 +594,8 @@ export default function Tetris({ onFinish }) {
                 deathMusic.volume = 0.8;
                 deathMusicRef.current = deathMusic;
                 deathMusic.play().catch(() => {});
-                setTimeout(() => {
+                winFinishTimeoutRef.current = setTimeout(() => {
+                  winFinishTimeoutRef.current = null;
                   if (deathMusicRef.current === deathMusic) {
                     deathMusic.pause();
                     deathMusicRef.current = null;
