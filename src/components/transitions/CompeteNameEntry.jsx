@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppShell from "../AppShell";
 import { useCoins } from "../CoinContext";
 import { computeScore } from "../../lib/scoring";
@@ -13,6 +13,27 @@ function formatElapsed(ms) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// Counts up from 0 to `target` over `duration`ms, starting after `delay`ms,
+// easing out so it lands with a satisfying settle instead of a hard stop.
+function useCountUp(target, { duration = 700, delay = 0 } = {}) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    setValue(0);
+    let raf;
+    let start = null;
+    const step = (ts) => {
+      if (start === null) start = ts;
+      const t = Math.min(1, (ts - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    const delayId = setTimeout(() => { raf = requestAnimationFrame(step); }, delay);
+    return () => { clearTimeout(delayId); if (raf) cancelAnimationFrame(raf); };
+  }, [target, duration, delay]);
+  return value;
+}
+
 export default function CompeteNameEntry({ onDone }) {
   const { competeResult, clearCompeteResult } = useCoins();
   const [name, setName] = useState("");
@@ -20,6 +41,18 @@ export default function CompeteNameEntry({ onDone }) {
 
   const stats = competeResult || { elapsedMs: 0, coinsEarned: 0, deathsTotal: 0 };
   const score = computeScore(stats);
+
+  const elapsedSeconds = Math.floor(stats.elapsedMs / 1000);
+  const timeAnim = useCountUp(elapsedSeconds, { duration: 600, delay: 150 });
+  const coinsAnim = useCountUp(stats.coinsEarned, { duration: 600, delay: 400 });
+  const deathsAnim = useCountUp(stats.deathsTotal, { duration: 600, delay: 650 });
+  const scoreAnim = useCountUp(score, { duration: 1100, delay: 950 });
+  const [scoreSettled, setScoreSettled] = useState(false);
+  useEffect(() => {
+    setScoreSettled(false);
+    const id = setTimeout(() => setScoreSettled(true), 950 + 1100);
+    return () => clearTimeout(id);
+  }, [score]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,15 +70,25 @@ export default function CompeteNameEntry({ onDone }) {
         alignItems: "center", justifyContent: "center", gap: 18,
         fontFamily: "'PokemonClassic', monospace", color: "#fff", padding: 24,
       }}>
+        <style>{`
+          @keyframes gexel-score-settle {
+            0%   { transform: scale(1); text-shadow: 0 0 0px #2ea84a00; }
+            35%  { transform: scale(1.18); text-shadow: 0 0 12px #2ea84acc; }
+            100% { transform: scale(1); text-shadow: 0 0 0px #2ea84a00; }
+          }
+        `}</style>
         <div style={{ fontSize: 18, color: "#2ea84a", letterSpacing: 2, textShadow: "0 0 10px #2ea84a88" }}>
           RUN COMPLETE
         </div>
 
         <div style={{ fontSize: 11, lineHeight: 2, textAlign: "center", color: "#ccc" }}>
-          <div>TIME: {formatElapsed(stats.elapsedMs)}</div>
-          <div>RAM COINS: {stats.coinsEarned}</div>
-          <div>DEATHS: {stats.deathsTotal}</div>
-          <div style={{ color: "#fff", marginTop: 6 }}>SCORE: {score}</div>
+          <div>TIME: {formatElapsed(timeAnim * 1000)}</div>
+          <div>RAM COINS: {coinsAnim}</div>
+          <div>DEATHS: {deathsAnim}</div>
+          <div style={{
+            color: "#fff", marginTop: 6, display: "inline-block",
+            animation: scoreSettled ? "gexel-score-settle 0.5s ease-out" : "none",
+          }}>SCORE: {scoreAnim}</div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
