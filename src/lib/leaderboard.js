@@ -18,11 +18,16 @@ function readLocal() {
 }
 
 function writeLocal(entries) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(entries.slice(-MAX_LOCAL_ENTRIES)));
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(entries.slice(-MAX_LOCAL_ENTRIES)));
+  } catch {
+    // storage full/blocked (e.g. Safari private browsing) — the network submit below still counts
+  }
 }
 
 // Saves locally first so the run is never lost if the network call fails,
-// then best-effort mirrors it to the shared worker leaderboard.
+// then best-effort mirrors it to the shared worker leaderboard. Never throws —
+// a storage or network failure should not block the player from moving on.
 export async function submitScore(name, score) {
   const entry = { name, score };
   writeLocal([...readLocal(), entry]);
