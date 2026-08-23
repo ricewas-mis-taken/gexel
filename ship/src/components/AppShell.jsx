@@ -81,7 +81,7 @@ export default function AppShell({ children, rightSlot, showCoins = true })
   return (
     <div ref={shellRef} style={{ background: "#000", position: isFullscreen ? "fixed" : "static", inset: isFullscreen ? 0 : "auto", width: isFullscreen ? "100vw" : "auto", height: isFullscreen ? "100vh" : "100vh", minHeight: isFullscreen ? "auto" : "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
       <div style={{ width: 900, height: 600, position: "relative", border: "2px solid #2ea84a", borderRadius: 6, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 40px #2ea84a33", transform: `scale(${scale})`, transformOrigin: "center center", transition: "transform 0.15s ease", flexShrink: 0 }}>
-        <div style={{ background: "#2ea84a", color: "white", padding: "6px 12px", fontSize: 14, fontFamily: "'PokemonClassic', monospace", display: "flex", alignItems: "center", gap: 16, flexShrink: 0, borderBottom: "2px solid #1a5c37" }}>
+        <div style={{ background: "#2ea84a", color: "white", padding: "6px 12px", fontSize: 10, fontFamily: "'PokemonClassic', monospace", display: "flex", alignItems: "center", gap: 16, flexShrink: 0, borderBottom: "2px solid #1a5c37" }}>
           <span style={{fontWeight:"bold"}}>Gexel</span>
           {["File","Home","Insert","Page Layout","Formulas","Data","Review","View"].map(m => (
             <span key={m} style={{ opacity: 0.85 }}>{m}</span>
