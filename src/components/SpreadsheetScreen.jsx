@@ -6,6 +6,18 @@ import { playSafely } from "../lib/audio";
 
 const COL_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const FONTS = ["Calibri", "Arial", "Times New Roman", "Courier New", "Georgia"];
+// Real fallback stacks per font, keyed by display name. Without these, a
+// font that isn't actually installed (Calibri/Georgia are inconsistently
+// available across OSes) falls back to whatever the browser's default is —
+// and that default can differ between normal and bold weight, making the
+// text appear to switch fonts the instant Bold is toggled.
+const FONT_STACKS = {
+  "Calibri": "Calibri, Candara, Segoe UI, Optima, Arial, sans-serif",
+  "Arial": "Arial, Helvetica, sans-serif",
+  "Times New Roman": "'Times New Roman', Times, serif",
+  "Courier New": "'Courier New', Courier, monospace",
+  "Georgia": "Georgia, 'Times New Roman', serif",
+};
 const SIZES  =  [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36];
 const NORMAL_ROWS = 50;
 const NORMAL_COLS=26;
@@ -83,7 +95,7 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
   const getStyle = (key) => {
     const s = cellStyles[key];
       if (!s) return {};
-    return { fontFamily: s.font, fontSize: s.size, color: s.color, fontWeight: s.bold ? "bold" : "normal", fontStyle: s.italic ? "italic" : "normal", textDecoration: s.underline ? "underline" : "none" };
+    return { fontFamily: FONT_STACKS[s.font] || s.font, fontSize: s.size, color: s.color, fontWeight: s.bold ? "bold" : "normal", fontStyle: s.italic ? "italic" : "normal", textDecoration: s.underline ? "underline" : "none" };
   };
   const onSelectCell = (r, c) => {
     setSelected({ r, c });
