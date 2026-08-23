@@ -72,10 +72,14 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
     return () => clearTimeout(doneTimer);
   }, [stage]);
 
+  const DEFAULT_STYLE = { font: "Calibri", size: 11, color: "#e0e0e0", bold: false, italic: false, underline: false };
   const selKey=`${selected.r}-${selected.c}`;
   const updateCell = (key, val) => setCells(c => ({ ...c, [key]: val }));
-  const applyStyle = () =>
-    setCellStyles(s => ({ ...s, [selKey]: { font, size, color, bold, italic, underline } }));
+  // Merge a single field into the selected cell's existing style, so toggling
+  // one attribute (e.g. bold) never clobbers the cell's other attributes with
+  // whatever the toolbar happens to be showing from a previously-edited cell.
+  const updateStyle = (patch) =>
+    setCellStyles(s => ({ ...s, [selKey]: { ...(s[selKey] || DEFAULT_STYLE), ...patch } }));
   const getStyle = (key) => {
     const s = cellStyles[key];
       if (!s) return {};
@@ -83,8 +87,8 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
   };
   const onSelectCell = (r, c) => {
     setSelected({ r, c });
-    const s = cellStyles[`${r}-${c}`];
-    if (s) { setFont(s.font); setSize(s.size); setColor(s.color); setBold(s.bold); setItalic(s.italic); setUnderline(s.underline); }
+    const s = cellStyles[`${r}-${c}`] || DEFAULT_STYLE;
+    setFont(s.font); setSize(s.size); setColor(s.color); setBold(s.bold); setItalic(s.italic); setUnderline(s.underline);
   };
 
   return (
@@ -152,13 +156,12 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
 
       <div className={stage === "glitching" ? "gexel-glitching" : undefined} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
       <div style={{ background: "#2d2d2d", borderBottom: "1px solid #444", padding: "5px 12px", display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-        <select value={font} onChange={e => setFont(e.target.value)} style={selectStyle}>{FONTS.map(f => <option key={f}>{f}</option>)}</select>
-        <select value={size} onChange={e => setSize(Number(e.target.value))} style={{ ...selectStyle, width: 55 }}>{SIZES.map(s => <option key={s}>{s}</option>)}</select>
-        <button style={{ ...ribbonBtn, fontWeight: "bold", background: bold ? "#2ea84a" : "#3a3a3a", border: bold ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setBold(b => !b)}>B</button>
-        <button style={{ ...ribbonBtn, fontStyle: "italic", background: italic ? "#2ea84a" : "#3a3a3a", border: italic ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setItalic(i => !i)}>I</button>
-        <button style={{ ...ribbonBtn, textDecoration: "underline", background: underline ? "#2ea84a" : "#3a3a3a", border: underline ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setUnderline(u => !u)}>U</button>
-        <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 30, height: 26, cursor: "pointer", border: "1px solid #555", borderRadius: 2, padding: 1 }} />
-        <button style={{ ...ribbonBtn, background: "#2ea84a", color: "white", border: "1px solid #1a5c37" }} onClick={applyStyle}>Apply</button>
+        <select value={font} onChange={e => { setFont(e.target.value); updateStyle({ font: e.target.value }); }} style={selectStyle}>{FONTS.map(f => <option key={f}>{f}</option>)}</select>
+        <select value={size} onChange={e => { const v = Number(e.target.value); setSize(v); updateStyle({ size: v }); }} style={{ ...selectStyle, width: 55 }}>{SIZES.map(s => <option key={s}>{s}</option>)}</select>
+        <button style={{ ...ribbonBtn, fontWeight: "bold", background: bold ? "#2ea84a" : "#3a3a3a", border: bold ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setBold(b => { const nb = !b; updateStyle({ bold: nb }); return nb; })}>B</button>
+        <button style={{ ...ribbonBtn, fontStyle: "italic", background: italic ? "#2ea84a" : "#3a3a3a", border: italic ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setItalic(i => { const ni = !i; updateStyle({ italic: ni }); return ni; })}>I</button>
+        <button style={{ ...ribbonBtn, textDecoration: "underline", background: underline ? "#2ea84a" : "#3a3a3a", border: underline ? "1px solid #1a5c37" : ribbonBtn.border }} onClick={() => setUnderline(u => { const nu = !u; updateStyle({ underline: nu }); return nu; })}>U</button>
+        <input type="color" value={color} onChange={e => { setColor(e.target.value); updateStyle({ color: e.target.value }); }} style={{ width: 30, height: 26, cursor: "pointer", border: "1px solid #555", borderRadius: 2, padding: 1 }} />
       </div>
       <div style={{ background: "#2a2a2a", borderBottom: "1px solid #444", padding: "3px 8px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <span style={{ width: 40, textAlign: "center", border: "1px solid #555", padding: "1px 4px", color: "#e0e0e0" }}>{COL_LETTERS[selected.c]}{selected.r + 1}</span>
@@ -186,7 +189,6 @@ export default function SpreadsheetScreen({ onEscape, onCheat })
                         value={cells[key] || ""}
                         onChange={e => updateCell(key, e.target.value)}
                         onFocus={() => onSelectCell(r, c)}
-                        onBlur={applyStyle}
                         disabled={stage === "hint"} />
                     </td>
                   );
